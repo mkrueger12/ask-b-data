@@ -74,4 +74,4 @@ df_data.rename(columns={'#STN_#text': "station_id"}, inplace=True)
 
 df_data = df_data[df_data['station_id'].isin(buoys_within_500_miles)]
 
-upload_blob_from_memory("raw-avy-data", data, f'daily/bouy/bouy_{datetime.now()}.csv')
+upload_blob_from_memory("raw-avy-data", df_data, f'daily/bouy/bouy_{datetime.now()}.csv')
