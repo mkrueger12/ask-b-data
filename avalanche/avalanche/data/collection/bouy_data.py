@@ -1,7 +1,7 @@
 import requests
 from geopy.distance import geodesic
 import pandas as pd
-import datetime
+from datetime import datetime
 from google.cloud import storage
 
 def upload_blob_from_memory(bucket_name, contents, destination_blob_name):
@@ -73,3 +73,7 @@ df_data = df_data.rename(columns={df_data.columns[0]: "station_id"})
 # Combine the levels of the column index
 df_data.columns = [f"{a}_{b}" if b else a for a, b in df_data.columns]
 df_data.rename(columns={'#STN_#text': "station_id"}, inplace=True)
+
+df_data = df_data[df_data['station_id'].isin(buoys_within_500_miles)]
+
+upload_blob_from_memory("raw-avy-data", data, f'daily/bouy/bouy_{datetime.now()}.csv')
