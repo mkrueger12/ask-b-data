@@ -3,6 +3,8 @@ import os
 import pandas as pd
 import datetime
 from google.cloud import storage
+from google.oauth2 import service_account
+
 
 
 
@@ -19,8 +21,7 @@ def upload_blob_from_memory(bucket_name, contents, destination_blob_name):
 
     # The ID of your GCS object
     # destination_blob_name = "storage-object-name"
-    #service_account_info = json.load(open('/home/max/Documents/Access Accounts/avalanche-analytics-project-55735591e108.json'))
-    #storage_client = storage.Client(credentials = service_account.Credentials.from_service_account_info(service_account_info))
+
     storage_client = storage.Client()
     bucket = storage_client.bucket(bucket_name)
     blob = bucket.blob(destination_blob_name)
