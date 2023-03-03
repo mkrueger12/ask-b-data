@@ -5,33 +5,19 @@ import datetime
 from google.cloud import storage
 from google.oauth2 import service_account
 
-
-
-
-
-
 def upload_blob_from_memory(bucket_name, contents, destination_blob_name):
     """Uploads a file to the bucket."""
 
-    # The ID of your GCS bucket
-    # bucket_name = "your-bucket-name"
+    try:
+        storage_client = storage.Client()
+        bucket = storage_client.bucket(bucket_name)
+        blob = bucket.blob(destination_blob_name)
 
-    # The contents to upload to the file
-    # contents = "these are my contents"
+        blob.upload_from_string(contents.to_csv(), 'text/csv')
 
-    # The ID of your GCS object
-    # destination_blob_name = "storage-object-name"
-
-    storage_client = storage.Client()
-    bucket = storage_client.bucket(bucket_name)
-    blob = bucket.blob(destination_blob_name)
-
-    blob.upload_from_string(contents.to_csv(), 'text/csv')
-
-    print(
-        f"{destination_blob_name} uploaded to {bucket_name}."
-    )
-
+        print(f"{destination_blob_name} uploaded to {bucket_name}.")
+    except Exception as e:
+        print(f"Error uploading file to {bucket_name}: {e}")
 
 
 def snotel_swe_daily(station_data):
@@ -42,6 +28,7 @@ def snotel_swe_daily(station_data):
     state = record["state"]
 
     # build url
+
 
     # Get today's date
     today = datetime.date.today()
@@ -60,7 +47,6 @@ def snotel_swe_daily(station_data):
 
     # snow_depth
     snow_data = data[34]
-    snow_data = snow_data.fillna(-1)
 
     if len(snow_data.axes[1]) > 10:
         snow_data = 1
