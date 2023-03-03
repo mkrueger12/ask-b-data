@@ -52,8 +52,6 @@ for buoy in buoy_data:
     if distance_to_hawaii <= radius_hawaii or distance_to_juneau <= radius_juneau:
         buoys_within_500_miles.append(buoy["buoy_id"])
 
-
-
 df_header = pd.read_csv(nbdc_url, nrows=1, header=None)
 df_units = pd.read_csv(nbdc_url, skiprows=1, nrows=1, header=None)
 
