@@ -18,23 +18,27 @@ def get_streamflow_station_ids(state):
     return station_ids
 
 
+def get_streamflow_data(url):
+    # Send a GET request to the URL and store the response as a json object
+    response = requests.get(url).json()
+
+    # Extract the time series data from the json object
+    time_series = response['value']['timeSeries'][3]['values'][0]['value']
+
+    # Create a list to store the data
+    data = []
+
+    # Loop through the time series data and add it to the list
+    for i in range(len(time_series)):
+        datetime = time_series[i]['dateTime']
+        discharge = float(time_series[i]['value'])
+        data.append({'datetime': datetime, 'discharge': discharge})
+
+    # Create a pandas dataframe from the data list
+    df = pd.DataFrame(data)
+
+    return df
+
+
 url = 'https://waterservices.usgs.gov/nwis/dv/?format=json&sites=09066200&period=P365D&siteStatus=active'
-# Read the data into a pandas DataFrame
 
-# Send a GET request to the URL and store the response as a json object
-response = requests.get(url).json()
-
-# Extract the time series data from the json object
-time_series = response['value']['timeSeries'][3]['values'][0]['value']
-
-# Create a list to store the data
-data = []
-
-# Loop through the time series data and add it to the list
-for i in range(len(time_series)):
-    datetime = time_series[i]['dateTime']
-    discharge = float(time_series[i]['value'])
-    data.append({'datetime': datetime, 'discharge': discharge})
-
-# Create a pandas dataframe from the data list
-df = pd.DataFrame(data)
