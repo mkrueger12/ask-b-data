@@ -42,3 +42,10 @@ def get_streamflow_data(url):
 
 url = 'https://waterservices.usgs.gov/nwis/dv/?format=json&sites=09066200&period=P365D&siteStatus=active'
 
+ids = get_streamflow_station_ids('CO')
+
+df = []
+
+for i in ids:
+    data = get_streamflow_data(f'https://waterservices.usgs.gov/nwis/dv/?format=json&sites={i}&period=P365D&siteStatus=active')
+    df.append(data)
