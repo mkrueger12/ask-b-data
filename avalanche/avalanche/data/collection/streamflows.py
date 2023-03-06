@@ -1,3 +1,7 @@
+''' This module contains functions for collecting streamflow data from the USGS API.
+It collects data for all streamflow stations in a given state and returns a pandas dataframe with the data.
+It collects the last 365 days of data for each station. '''
+
 import pandas as pd
 import requests
 
