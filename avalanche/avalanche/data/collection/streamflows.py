@@ -55,15 +55,18 @@ def get_streamflow_data(url, station_id):
 
     return df
 
+def main():
+    # Get a list of all streamflow station IDs in Colorado
+    ids = get_streamflow_station_ids('CO')
 
-ids = get_streamflow_station_ids('CO')
+    dfs = []
 
-dfs = []
+    for i in ids:
 
-for i in ids:
-    data = get_streamflow_data(
-        f'https://waterservices.usgs.gov/nwis/dv/?format=json&sites={i}&period=P365D&siteStatus=active', i)
-    if not data.empty:
-        dfs.append(data)
+        data = get_streamflow_data(
+            f'https://waterservices.usgs.gov/nwis/dv/?format=json&sites={i}&period=P365D&siteStatus=active', i)
+        if not data.empty:
+            dfs.append(data)
 
-df = pd.concat(dfs)
+    df = pd.concat(dfs)
+
