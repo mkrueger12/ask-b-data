@@ -9,30 +9,37 @@ def get_streamflow_station_ids(state):
     response = requests.get(url)
 
     # Parse the response into a list of station IDs
-    station_ids = []
-    for line in response.text.split('\n'):
-        if line.startswith('USGS'):
-            station_ids.append(line.split('\t')[1])
+    station_ids = [line.split('\t')[1] for line in response.text.split('\n') if line.startswith('USGS')]
 
     # Return the list of station IDs
     return station_ids
 
 
-def get_streamflow_data(url):
+def get_streamflow_data(url, station_id):
     # Send a GET request to the URL and store the response as a json object
-    response = requests.get(url).json()
+    response = requests.get(url)
+    print(response.status_code)
+    response = response.json()
+    print(url)
+
 
     # Extract the time series data from the json object
     time_series = response['value']['timeSeries'][3]['values'][0]['value']
 
-    # Create a list to store the data
-    data = []
+    # Extract the time series data from the json object
+    time_series = None
+    for ts in response['value']['timeSeries']:
+        if ts['variable']['variableCode'][0]['value'] == '00060':
+            time_series = ts['values'][0]['value']
+            break
 
-    # Loop through the time series data and add it to the list
-    for i in range(len(time_series)):
-        datetime = time_series[i]['dateTime']
-        discharge = float(time_series[i]['value'])
-        data.append({'datetime': datetime, 'discharge': discharge})
+    # If time_series is still None, no data was found for variableCode '00060'
+    if time_series is None:
+        raise ValueError("No data found for variableCode '00060'")
+
+    # Create a list to store the data
+    data = [{'datetime': ts['dateTime'], 'discharge': float(ts['value']), 'station_id': station_id} for ts in time_series]
+
 
     # Create a pandas dataframe from the data list
     df = pd.DataFrame(data)
@@ -40,12 +47,15 @@ def get_streamflow_data(url):
     return df
 
 
-url = 'https://waterservices.usgs.gov/nwis/dv/?format=json&sites=09066200&period=P365D&siteStatus=active'
-
 ids = get_streamflow_station_ids('CO')
 
 df = []
 
 for i in ids:
-    data = get_streamflow_data(f'https://waterservices.usgs.gov/nwis/dv/?format=json&sites={i}&period=P365D&siteStatus=active')
+
+    data = get_streamflow_data(f'https://waterservices.usgs.gov/nwis/dv/?format=json&sites={i}&period=P365D&siteStatus=active', i)
     df.append(data)
+
+#dfs = [get_streamflow_data(f'https://waterservices.usgs.gov/nwis/dv/?format=json&sites={i}&period=P365D&siteStatus=active') for i in ids]
+
+#df = pd.concat(dfs)
