@@ -18,85 +18,52 @@ def upload_blob_from_memory(bucket_name, contents, destination_blob_name):
 
     # The ID of your GCS object
     # destination_blob_name = "storage-object-name"
-    service_account_info = json.load(open('/home/max/Documents/Access Accounts/avalanche-analytics-project-55735591e108.json'))
-    storage_client = storage.Client(credentials = service_account.Credentials.from_service_account_info(service_account_info))
+    storage_client = storage.Client(project='avalanche-analytics-project')
     bucket = storage_client.bucket(bucket_name)
     blob = bucket.blob(destination_blob_name)
 
-    blob.upload_from_string(snow_data.to_csv(), 'text/csv')
+    blob.upload_from_string(contents, 'text/csv')
 
     print(
         f"{destination_blob_name} uploaded to {bucket_name}."
     )
 
 
-# Read all files in directory
-
-
-file = os.listdir('/home/max/Documents/Avalanche')
-file = [i.split('_',)[3] for i in file]
-file = [i.replace(".csv", "") for i in file]
-
 #Station Metadata
 
-
-station_md = pd.read_html("https://wcc.sc.egov.usda.gov/nwcc/yearcount?network=sntl&state=&counttype=statelist")[1]
-
-
-all = []
+station_md = pd.read_html("https://wcc.sc.egov.usda.gov/nwcc/yearcount?network=sntl&state=&counttype=statelist")[0].to_dict(orient='records')
+station_md = [entry for entry in station_md if entry['state'] == 'CO']
 
 
 for i in range(0,len(station_md)):
-    record = station_md.iloc[i]
+    record = station_md[i]
 
     s = str()
 
     station_id = record["site_name"][record["site_name"].find("(")+1:record["site_name"].find(")")]
 
-    if station_id in file:
-        print('pass', station_id)
-        pass
-    else:
+    state = record["state"]
 
-        state = record["state"]
+    start_date = record["start"]
 
-        start_date = record["start"]
+    # format
+    format = '%Y-%B'
 
-        # datetime in string format for may 25 1999
-        start_date = record["start"]
-        # format
-        format = '%Y-%B'
+    # convert from string format to datetime format
+    s_date = datetime.datetime.strptime(start_date, format)
 
-        # convert from string format to datetime format
-        s_date = datetime.datetime.strptime(start_date, format)
+    s_date = str(s_date.date())
 
-        s_date = str(s_date.date())
+    # build url
 
-        # build url
+    url = f'https://wcc.sc.egov.usda.gov/reportGenerator/view/customSingleStationReport/daily/start_of_period/{station_id}:{state}:SNTL%7Cid=%22%22%7Cname/{s_date},2023-02-28/stationId,name,SNWD::value,SNWD::qcFlag,SNWD::qaFlag,SNWD::prevValue?fitToScreen=false'
 
-        url = f'https://wcc.sc.egov.usda.gov/reportGenerator/view/customSingleStationReport/daily/start_of_period/{station_id}:{state}:SNTL%7Cid=%22%22%7Cname/{s_date},2023-02-28/stationId,name,SNWD::value,SNWD::qcFlag,SNWD::qaFlag,SNWD::prevValue?fitToScreen=false'
+    print(url)
 
-        print(url)
+    # read in snowtel daata
 
-        # read in snowtel daata
+    data = max(pd.read_html(url), key=lambda x: len(x))
 
-        data = pd.read_html(url)
+    data['state'] = state
 
-        #Station ID
-
-        station = data[5]
-
-        #snow_depth
-        snow_data = data[34]
-
-        #all.append(snow_data)
-
-        #data = pd.concat(all)
-
-        if len(snow_data) > 2:
-
-            snow_data.to_csv(f'/home/max/Documents/Avalanche/historical_snow_depth_{station_id}.csv')
-
-        else:
-            pass
-
+    upload_blob_from_memory('snow-depth', contents=data.to_csv(), destination_blob_name='raw/{station_id}.csv')
