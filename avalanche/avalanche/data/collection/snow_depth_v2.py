@@ -16,7 +16,7 @@ def process_station(record):
     format = '%Y-%B'
     s_date = datetime.datetime.strptime(start_date, format)
     s_date = str(s_date.date())
-    url = f'https://wcc.sc.egov.usda.gov/reportGenerator/view/customSingleStationReport/daily/start_of_period/{station_id}:{state}:SNTL%7Cid=%22%22%7Cname/{s_date},2023-02-28/stationId,name,SNWD::value,SNWD::qcFlag,SNWD::qaFlag,SNWD::prevValue?fitToScreen=false'
+    url = f'https://wcc.sc.egov.usda.gov/reportGenerator/view/customSingleStationReport/daily/start_of_period/{station_id}:{state}:SNTL%7Cid=%22%22%7Cname/{s_date},2023-11-01/stationId,name,SNWD::value,SNWD::qcFlag,SNWD::qaFlag,SNWD::prevValue?fitToScreen=false'
     print('Done with', station_id, 'in', state, 'at', datetime.datetime.now().strftime("%H:%M:%S"))
     data = max(pd.read_html(url), key=lambda x: len(x))
     data['state'] = state
@@ -24,6 +24,9 @@ def process_station(record):
     data['latitude'] = record['lat']
     data['longitude'] = record['lon']
     data['elevation'] = record['elev']
+    data['new_snow'] = data['Snow Depth (in) Start of Day Values'] - data['Snow Depth (in) Start of Day Values'].shift(1)
+    data.rename(columns={'Snow Depth (in) Start of Day Values': 'snow_depth', 'Station Id': 'station_id', 'Station Name': 'station_name'}, inplace=True)
+    data = data[['state', 'county', 'latitude', 'longitude', 'elevation', 'station_name', 'station_id', 'Date', 'snow_depth']]
     return station_id, data
 
 
