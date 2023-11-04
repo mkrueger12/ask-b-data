@@ -26,7 +26,7 @@ def process_station(record):
     data['elevation'] = record['elev']
     data['new_snow'] = data['Snow Depth (in) Start of Day Values'] - data['Snow Depth (in) Start of Day Values'].shift(1)
     data.rename(columns={'Snow Depth (in) Start of Day Values': 'snow_depth', 'Station Id': 'station_id', 'Station Name': 'station_name'}, inplace=True)
-    data = data[['state', 'county', 'latitude', 'longitude', 'elevation', 'station_name', 'station_id', 'Date', 'snow_depth']]
+    data = data[['state', 'county', 'latitude', 'longitude', 'elevation', 'station_name', 'station_id', 'Date', 'snow_depth', 'new_snow']]
     return station_id, data
 
 
