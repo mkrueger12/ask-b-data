@@ -17,18 +17,35 @@ def process_station(record):
     format = '%Y-%B'
     s_date = datetime.datetime.strptime(start_date, format)
     s_date = str(s_date.date())
-    url = f'https://wcc.sc.egov.usda.gov/reportGenerator/view/customSingleStationReport/daily/start_of_period/{station_id}:{state}:SNTL%7Cid=%22%22%7Cname/{s_date},2023-11-07/stationId,name,SNWD::value,SNWD::qcFlag,SNWD::qaFlag,SNWD::prevValue?fitToScreen=false'
-    #https://wcc.sc.egov.usda.gov/reportGenerator/view/customSingleStationReport/daily/1120:CO:SNTL|id=%22%22|name/-29,0/WTEQ::value,WTEQ::median_1991,WTEQ::pctOfMedian_1991,SNWD::value,PREC::value,PREC::median_1991,PREC::pctOfMedian_1991,TMAX::value,TMIN::value,TAVG::value?fitToScreen=false
+    s_date = '2009-10-01'
+    url = f'https://wcc.sc.egov.usda.gov/reportGenerator/view/customSingleStationReport/daily/start_of_period/{station_id}:{state}:SNTL%7Cid=%22%22%7Cname/{s_date},2023-11-07/name,stationId,state.code,network.code,elevation,latitude,longitude,county.name,WTEQ::value,WTEQ::pctOfMedian_1991,SNWD::value,TMAX::value,TMIN::value,TOBS::value,SNDN::value?fitToScreen=false'
+    #https://wcc.sc.egov.usda.gov/reportGenerator/view/customSingleStationReport/daily/start_of_period/1120:CO:SNTL%7Cid=%22%22%7Cname/-29,0/WTEQ::value,WTEQ::pctOfMedian_1991,SNWD::value,TMAX::value,TMIN::value,TOBS::value,SNDN::value?fitToScreen=false
     print('Done with', station_id, 'in', state, 'at', datetime.datetime.now().strftime("%H:%M:%S"))
     data = max(pd.read_html(url), key=lambda x: len(x))
-    data['state'] = state
-    data['county'] = record['county']
-    data['latitude'] = record['lat']
-    data['longitude'] = record['lon']
-    data['elevation'] = record['elev']
+
     data['new_snow'] = np.maximum(0, data['Snow Depth (in) Start of Day Values'] - data['Snow Depth (in) Start of Day Values'].shift(1))
-    data.rename(columns={'Snow Depth (in) Start of Day Values': 'snow_depth', 'Station Id': 'station_id', 'Station Name': 'station_name'}, inplace=True)
-    data = data[['state', 'county', 'latitude', 'longitude', 'elevation', 'station_name', 'station_id', 'Date', 'snow_depth', 'new_snow']]
+
+    column_mapping = {
+        'Date': 'date',
+        'Station Name': 'station_name',
+        'Station Id': 'station_id',
+        'State Code': 'state_code',
+        'Network Code': 'network_code',
+        'Elevation (ft)': 'elevation_ft',
+        'Latitude': 'latitude',
+        'Longitude': 'longitude',
+        'County Name': 'county_name',
+        'Snow Water Equivalent (in) Start of Day Values': 'snow_water_equivalent_in',
+        'Snow Water Equivalent % of Median (1991-2020)': 'snow_water_equivalent_median_percentage',
+        'Snow Depth (in) Start of Day Values': 'snow_depth_in',
+        'Air Temperature Maximum (degF)': 'max_temp_degF',
+        'Air Temperature Minimum (degF)': 'min_temp_degF',
+        'Air Temperature Observed (degF) Start of Day Values': 'observed_temp_degF',
+        'Snow Density (pct) Start of Day Values': 'snow_density_percentage'
+    }
+
+    data.rename(columns=column_mapping, inplace=True)
+
     return station_id, data
 
 
@@ -40,7 +57,7 @@ def main():
     # Fetch station metadata
     station_md = pd.read_html("https://wcc.sc.egov.usda.gov/nwcc/yearcount?network=sntl&state=&counttype=statelist")[
         0].to_dict(orient='records')
-    station_md = [entry for entry in station_md if entry['state'] == 'CO']
+    #station_md = [entry for entry in station_md if entry['state'] == 'CO']
 
     # Process stations concurrently using ThreadPoolExecutor
     with concurrent.futures.ThreadPoolExecutor() as executor:
