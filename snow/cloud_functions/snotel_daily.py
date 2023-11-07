@@ -30,36 +30,43 @@ def process_station(record):
 
         # Parse CSV data into a Pandas DataFrame
         data = pd.read_csv(csv_data, comment='#', skip_blank_lines=True)
+
+        if data['Snow Depth (in) Start of Day Values'] not in data.columns:
+            data['Snow Depth (in) Start of Day Values'] = np.nan
+
+        data['new_snow'] = np.maximum(0, data['Snow Depth (in) Start of Day Values'] - data[
+            'Snow Depth (in) Start of Day Values'].shift(1))
+
+        column_mapping = {
+            'Date': 'date',
+            'Station Name': 'station_name',
+            'Station Id': 'station_id',
+            'State Code': 'state_code',
+            'Network Code': 'network_code',
+            'Elevation (ft)': 'elevation_ft',
+            'Latitude': 'latitude',
+            'Longitude': 'longitude',
+            'County Name': 'county_name',
+            'Snow Water Equivalent (in) Start of Day Values': 'snow_water_equivalent_in',
+            'Snow Water Equivalent % of Median (1991-2020)': 'snow_water_equivalent_median_percentage',
+            'Snow Depth (in) Start of Day Values': 'snow_depth_in',
+            'Air Temperature Maximum (degF)': 'max_temp_degF',
+            'Air Temperature Minimum (degF)': 'min_temp_degF',
+            'Air Temperature Observed (degF) Start of Day Values': 'observed_temp_degF',
+            'Snow Density (pct) Start of Day Values': 'snow_density_percentage'
+        }
+
+        data.rename(columns=column_mapping, inplace=True)
+
+        return station_id, data[1:]
+
     else:
         print("Failed to fetch data from the URL")
 
-    if data['Snow Depth (in) Start of Day Values'] not in data.columns:
-        data['Snow Depth (in) Start of Day Values'] = np.nan
+        return None
 
-    data['new_snow'] = np.maximum(0, data['Snow Depth (in) Start of Day Values'] - data['Snow Depth (in) Start of Day Values'].shift(1))
 
-    column_mapping = {
-        'Date': 'date',
-        'Station Name': 'station_name',
-        'Station Id': 'station_id',
-        'State Code': 'state_code',
-        'Network Code': 'network_code',
-        'Elevation (ft)': 'elevation_ft',
-        'Latitude': 'latitude',
-        'Longitude': 'longitude',
-        'County Name': 'county_name',
-        'Snow Water Equivalent (in) Start of Day Values': 'snow_water_equivalent_in',
-        'Snow Water Equivalent % of Median (1991-2020)': 'snow_water_equivalent_median_percentage',
-        'Snow Depth (in) Start of Day Values': 'snow_depth_in',
-        'Air Temperature Maximum (degF)': 'max_temp_degF',
-        'Air Temperature Minimum (degF)': 'min_temp_degF',
-        'Air Temperature Observed (degF) Start of Day Values': 'observed_temp_degF',
-        'Snow Density (pct) Start of Day Values': 'snow_density_percentage'
-    }
 
-    data.rename(columns=column_mapping, inplace=True)
-
-    return station_id, data[1:]
 
 
 def entry_point(request):
@@ -73,12 +80,21 @@ def entry_point(request):
 
     processed_data = []
     for record in station_md:
-        station_id, data = process_station(record)
-        print(station_id)
-        processed_data.append((station_id, data))
 
-        # Upload data to Google Cloud Storage in bulk
-        for station_id, data in processed_data:
-            destination_blob_name = f'daily_raw/{data["date"]}_{station_id}.csv'
-            upload_blob_from_memory(bucket, contents=data.to_csv(index=False),
-                                    destination_blob_name=destination_blob_name)
+        try:
+
+            station_id, data = process_station(record)
+
+            print(station_id)
+            processed_data.append((station_id, data))
+
+            # Upload data to Google Cloud Storage in bulk
+            for station_id, data in processed_data:
+                destination_blob_name = f'daily_raw/{data["date"]}_{station_id}.csv'
+                upload_blob_from_memory(bucket, contents=data.to_csv(index=False),
+                                        destination_blob_name=destination_blob_name)
+
+        except TypeError:
+            pass
+
+
