@@ -1,8 +1,10 @@
-import pandas as pd
-import numpy as np
 import datetime
+from io import StringIO
+
+import numpy as np
+import pandas as pd
+import requests
 from google.cloud import storage
-import concurrent.futures
 
 
 def upload_blob_from_memory(bucket, contents, destination_blob_name):
@@ -14,15 +16,22 @@ def upload_blob_from_memory(bucket, contents, destination_blob_name):
 def process_station(record):
     station_id = record["site_name"][record["site_name"].find("(") + 1:record["site_name"].find(")")]
     state = record["state"]
-    start_date = record["start"]
-    format = '%Y-%B'
-    s_date = datetime.datetime.strptime(start_date, format)
-    s_date = str(s_date.date())
-    s_date = '2009-10-01'
-    url = f'https://wcc.sc.egov.usda.gov/reportGenerator/view/customSingleStationReport/daily/start_of_period/{station_id}:{state}:SNTL%7Cid=%22%22%7Cname/{s_date},2023-11-07/name,stationId,state.code,network.code,elevation,latitude,longitude,county.name,WTEQ::value,WTEQ::pctOfMedian_1991,SNWD::value,TMAX::value,TMIN::value,TOBS::value,SNDN::value?fitToScreen=false'
+
+    url = f'https://wcc.sc.egov.usda.gov/reportGenerator/view_csv/customSingleStationReport/daily/start_of_period/{station_id}:{state}:SNTL%7Cid=""|name/0,0/name,stationId,state.code,network.code,elevation,latitude,longitude,county.name,WTEQ::value,WTEQ::pctOfMedian_1991,SNWD::value,TMAX::value,TMIN::value,TOBS::value,SNDN::value?fitToScreen=false'
     #https://wcc.sc.egov.usda.gov/reportGenerator/view/customSingleStationReport/daily/start_of_period/1120:CO:SNTL%7Cid=%22%22%7Cname/-29,0/WTEQ::value,WTEQ::pctOfMedian_1991,SNWD::value,TMAX::value,TMIN::value,TOBS::value,SNDN::value?fitToScreen=false
     print('Done with', station_id, 'in', state, 'at', datetime.datetime.now().strftime("%H:%M:%S"))
-    data = max(pd.read_html(url), key=lambda x: len(x))
+
+    response = requests.get(url)
+
+    # Check if the request was successful
+    if response.status_code == 200:
+        # Use StringIO to simulate a file object for Pandas to read the CSV data
+        csv_data = StringIO(response.text)
+
+        # Parse CSV data into a Pandas DataFrame
+        data = pd.read_csv(csv_data, comment='#', skip_blank_lines=True)
+    else:
+        print("Failed to fetch data from the URL")
 
     if data['Snow Depth (in) Start of Day Values'] not in data.columns:
         data['Snow Depth (in) Start of Day Values'] = np.nan
@@ -50,10 +59,10 @@ def process_station(record):
 
     data.rename(columns=column_mapping, inplace=True)
 
-    return station_id, data
+    return station_id, data[1:]
 
 
-def main():
+def entry_point():
     # Initialize Google Cloud Storage client and bucket
     storage_client = storage.Client(project='avalanche-analytics-project')
     bucket = storage_client.bucket('snow-depth')
@@ -61,25 +70,15 @@ def main():
     # Fetch station metadata
     station_md = pd.read_html("https://wcc.sc.egov.usda.gov/nwcc/yearcount?network=sntl&state=&counttype=statelist")[
         0].to_dict(orient='records')
-    #station_md = [entry for entry in station_md if entry['state'] == 'CO']
 
+    processed_data = []
+    for record in station_md:
+        station_id, data = process_station(record)
+        print(station_id)
+        processed_data.append((station_id, data))
 
-    # Process stations concurrently using ThreadPoolExecutor
-    with concurrent.futures.ThreadPoolExecutor() as executor:
-        futures = [executor.submit(process_station, record) for record in station_md]
-
-        processed_data = []
-        for future in futures:
-            station_id, data = future.result()
-            print(station_id)
-            processed_data.append((station_id, data))
-
-            # Upload data to Google Cloud Storage in bulk
-            for station_id, data in processed_data:
-                destination_blob_name = f'raw/{station_id}.csv'
-                upload_blob_from_memory(bucket, contents=data.to_csv(index=False),
-                                        destination_blob_name=destination_blob_name)
-
-
-if __name__ == "__main__":
-    main()
+        # Upload data to Google Cloud Storage in bulk
+        for station_id, data in processed_data:
+            destination_blob_name = f'raw/{station_id}.csv'
+            upload_blob_from_memory(bucket, contents=data.to_csv(index=False),
+                                    destination_blob_name=destination_blob_name)
