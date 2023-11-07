@@ -62,7 +62,7 @@ def process_station(record):
     return station_id, data[1:]
 
 
-def entry_point():
+def entry_point(request):
     # Initialize Google Cloud Storage client and bucket
     storage_client = storage.Client(project='avalanche-analytics-project')
     bucket = storage_client.bucket('snow-depth')
@@ -79,6 +79,6 @@ def entry_point():
 
         # Upload data to Google Cloud Storage in bulk
         for station_id, data in processed_data:
-            destination_blob_name = f'raw/{station_id}.csv'
+            destination_blob_name = f'daily_raw/{data["date"]}_{station_id}.csv'
             upload_blob_from_memory(bucket, contents=data.to_csv(index=False),
                                     destination_blob_name=destination_blob_name)
