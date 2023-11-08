@@ -1,11 +1,25 @@
 import datetime
 from io import StringIO
-import asyncio
 import numpy as np
 import pandas as pd
 import requests
 from google.cloud import storage
 from google.cloud import bigquery
+
+
+'''gcloud functions deploy snotel-data \
+  --gen2 \
+  --runtime=python310 \
+  --trigger-topic=Daily-Pull \
+  --set-env-vars TZ="America/Denver" \
+  --entry-point=entry_point \
+  --min-instances=0 \
+  --max-instances=5 \
+  --memory=512MB \
+  --timeout=540s \
+  --region=us-central1 \
+  --no-allow-unauthenticated
+'''
 
 
 ##### CONFIG #####
@@ -75,7 +89,7 @@ def process_station(record):
         return None
 
 
-def entry_point(request):
+def entry_point(event, context):
     # Initialize Google Cloud Storage client and bucket
     storage_client = storage.Client(project=project_id)
     bucket = storage_client.bucket('snow-depth')
