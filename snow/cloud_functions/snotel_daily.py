@@ -1,11 +1,20 @@
 import datetime
 from io import StringIO
-
+import asyncio
 import numpy as np
 import pandas as pd
 import requests
 from google.cloud import storage
+from google.cloud import bigquery
 
+
+##### CONFIG #####
+# Specify the dataset and table information
+project_id = 'avalanche-analytics-project'
+dataset_id = 'production'
+table_id = 'snotel'
+
+client = bigquery.Client(project=project_id)
 
 def upload_blob_from_memory(bucket, contents, destination_blob_name):
     blob = bucket.blob(destination_blob_name)
@@ -18,7 +27,7 @@ def process_station(record):
     state = record["state"]
 
     url = f'https://wcc.sc.egov.usda.gov/reportGenerator/view_csv/customSingleStationReport/daily/start_of_period/{station_id}:{state}:SNTL%7Cid=""|name/0,0/name,stationId,state.code,network.code,elevation,latitude,longitude,county.name,WTEQ::value,WTEQ::pctOfMedian_1991,SNWD::value,TMAX::value,TMIN::value,TOBS::value,SNDN::value?fitToScreen=false'
-    #https://wcc.sc.egov.usda.gov/reportGenerator/view/customSingleStationReport/daily/start_of_period/1120:CO:SNTL%7Cid=%22%22%7Cname/-29,0/WTEQ::value,WTEQ::pctOfMedian_1991,SNWD::value,TMAX::value,TMIN::value,TOBS::value,SNDN::value?fitToScreen=false
+
     print('Done with', station_id, 'in', state, 'at', datetime.datetime.now().strftime("%H:%M:%S"))
 
     response = requests.get(url)
@@ -31,7 +40,7 @@ def process_station(record):
         # Parse CSV data into a Pandas DataFrame
         data = pd.read_csv(csv_data, comment='#', skip_blank_lines=True)
 
-        if data['Snow Depth (in) Start of Day Values'] not in data.columns:
+        if 'Snow Depth (in) Start of Day Values' not in data.columns:
             data['Snow Depth (in) Start of Day Values'] = np.nan
 
         data['new_snow'] = np.maximum(0, data['Snow Depth (in) Start of Day Values'] - data[
@@ -58,7 +67,7 @@ def process_station(record):
 
         data.rename(columns=column_mapping, inplace=True)
 
-        return station_id, data[1:]
+        return station_id, data
 
     else:
         print("Failed to fetch data from the URL")
@@ -66,12 +75,9 @@ def process_station(record):
         return None
 
 
-
-
-
 def entry_point(request):
     # Initialize Google Cloud Storage client and bucket
-    storage_client = storage.Client(project='avalanche-analytics-project')
+    storage_client = storage.Client(project=project_id)
     bucket = storage_client.bucket('snow-depth')
 
     # Fetch station metadata
@@ -86,15 +92,53 @@ def entry_point(request):
             station_id, data = process_station(record)
 
             print(station_id)
-            processed_data.append((station_id, data))
+            processed_data.append(data)
 
             # Upload data to Google Cloud Storage in bulk
-            for station_id, data in processed_data:
-                destination_blob_name = f'daily_raw/{data["date"]}_{station_id}.csv'
+            for data in processed_data:
+                destination_blob_name = f'daily_raw/{str(data["date"][0])}_{data["station_id"][0]}.csv'
                 upload_blob_from_memory(bucket, contents=data.to_csv(index=False),
                                         destination_blob_name=destination_blob_name)
 
-        except TypeError:
+        except TypeError as e:
+            print('Error:', e)
             pass
 
+    # Get the reference to the target table
 
+    df = pd.concat(processed_data, ignore_index=True)
+
+    schema = {
+        "date": "datetime64[ns]",
+        "station_name": "string",
+        "station_id": "Int64",
+        "state_code": "string",
+        "network_code": "string",
+        "elevation_ft": "Int64",
+        "latitude": "float64",
+        "longitude": "float64",
+        "county_name": "string",
+        "snow_water_equivalent_in": "float64",
+        "snow_water_equivalent_median_percentage": "float64",
+        "snow_depth_in": "float64",
+        "max_temp_degF": "float64",
+        "min_temp_degF": "float64",
+        "observed_temp_degF": "float64",
+        "snow_density_percentage": "float64",
+        "new_snow": "float64"
+    }
+
+    # Ensure columns match the schema
+    for column, dtype in schema.items():
+        if column not in df.columns or df[column].dtype != dtype:
+            df[column] = df[column].astype(dtype)
+
+    table_ref = client.dataset(dataset_id).table(table_id)
+
+    # Load data into the table
+    job_config = bigquery.LoadJobConfig()
+    job_config.write_disposition = bigquery.WriteDisposition.WRITE_APPEND
+
+    # Load data from the DataFrame into the BigQuery table
+    job = client.load_table_from_dataframe(df, table_ref, job_config=job_config)
+    job.result()  # Wait for the job to complete
