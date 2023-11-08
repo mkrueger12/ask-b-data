@@ -203,5 +203,5 @@ def entry_point(event, context):
         # Run the update query
         update_sql = update_sql.format(project_id=project_id, dataset_id=dataset_id, table_id=table_id)
         query_job = client.query(update_sql, job_config=bigquery.QueryJobConfig(query_parameters=parameters))
-        query_job.result()  # Wait for the query to complete
+        #query_job.result()  # Wait for the query to complete
 
