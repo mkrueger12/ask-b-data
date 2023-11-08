@@ -1,11 +1,12 @@
 import pandas as pd
 import numpy as np
 import datetime
+import asyncio
 from google.cloud import storage
 import concurrent.futures
 
 
-def upload_blob_from_memory(bucket, contents, destination_blob_name):
+async def upload_blob_from_memory(bucket, contents, destination_blob_name):
     blob = bucket.blob(destination_blob_name)
     blob.upload_from_string(contents, content_type='text/csv')
     print(f"{destination_blob_name} uploaded to {bucket.name}.")
@@ -24,7 +25,7 @@ def process_station(record):
     print('Done with', station_id, 'in', state, 'at', datetime.datetime.now().strftime("%H:%M:%S"))
     data = max(pd.read_html(url), key=lambda x: len(x))
 
-    if data['Snow Depth (in) Start of Day Values'] not in data.columns:
+    if 'Snow Depth (in) Start of Day Values' not in data.columns:
         data['Snow Depth (in) Start of Day Values'] = np.nan
 
     data['new_snow'] = np.maximum(0, data['Snow Depth (in) Start of Day Values'] - data['Snow Depth (in) Start of Day Values'].shift(1))
@@ -61,24 +62,25 @@ def main():
     # Fetch station metadata
     station_md = pd.read_html("https://wcc.sc.egov.usda.gov/nwcc/yearcount?network=sntl&state=&counttype=statelist")[
         0].to_dict(orient='records')
-    #station_md = [entry for entry in station_md if entry['state'] == 'CO']
 
+    processed_data = []
+    for record in station_md:
 
-    # Process stations concurrently using ThreadPoolExecutor
-    with concurrent.futures.ThreadPoolExecutor() as executor:
-        futures = [executor.submit(process_station, record) for record in station_md]
+        try:
 
-        processed_data = []
-        for future in futures:
-            station_id, data = future.result()
+            station_id, data = process_station(record)
+
             print(station_id)
-            processed_data.append((station_id, data))
+            processed_data.append(station_id)
 
             # Upload data to Google Cloud Storage in bulk
-            for station_id, data in processed_data:
-                destination_blob_name = f'raw/{station_id}.csv'
-                upload_blob_from_memory(bucket, contents=data.to_csv(index=False),
-                                        destination_blob_name=destination_blob_name)
+            #for station_id, data in processed_data:
+            destination_blob_name = f'raw/{station_id}.csv'
+            asyncio.run(upload_blob_from_memory(bucket, contents=data.to_csv(index=False),
+                                        destination_blob_name=destination_blob_name))
+
+        except TypeError:
+            pass
 
 
 if __name__ == "__main__":
