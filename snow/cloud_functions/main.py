@@ -18,6 +18,7 @@ from google.cloud import bigquery
   --memory=512MB \
   --timeout=540s \
   --region=us-central1 \
+  --ingress-settings=internal-only \
   --no-allow-unauthenticated
 '''
 
@@ -29,6 +30,7 @@ dataset_id = 'production'
 table_id = 'snotel'
 
 client = bigquery.Client(project=project_id)
+
 
 def upload_blob_from_memory(bucket, contents, destination_blob_name):
     blob = bucket.blob(destination_blob_name)
@@ -42,8 +44,6 @@ def process_station(record):
 
     url = f'https://wcc.sc.egov.usda.gov/reportGenerator/view_csv/customSingleStationReport/daily/start_of_period/{station_id}:{state}:SNTL%7Cid=""|name/-1,0/name,stationId,state.code,network.code,elevation,latitude,longitude,county.name,WTEQ::value,WTEQ::pctOfMedian_1991,SNWD::value,TMAX::value,TMIN::value,TOBS::value,SNDN::value?fitToScreen=false'
 
-    print('Done with', station_id, 'in', state, 'at', datetime.datetime.now().strftime("%H:%M:%S"))
-
     response = requests.get(url)
 
     # Check if the request was successful
@@ -55,38 +55,78 @@ def process_station(record):
         data = pd.read_csv(csv_data, comment='#', skip_blank_lines=True)
 
         if 'Snow Depth (in) Start of Day Values' not in data.columns:
-            data['Snow Depth (in) Start of Day Values'] = np.nan
+            data['Snow Depth (in) Start of Day Values'] = None
 
         data['new_snow'] = np.maximum(0, data['Snow Depth (in) Start of Day Values'] - data[
-            'Snow Depth (in) Start of Day Values'].shift(1))
+                'Snow Depth (in) Start of Day Values'].shift(1))
 
         column_mapping = {
-            'Date': 'date',
-            'Station Name': 'station_name',
-            'Station Id': 'station_id',
-            'State Code': 'state_code',
-            'Network Code': 'network_code',
-            'Elevation (ft)': 'elevation_ft',
-            'Latitude': 'latitude',
-            'Longitude': 'longitude',
-            'County Name': 'county_name',
-            'Snow Water Equivalent (in) Start of Day Values': 'snow_water_equivalent_in',
-            'Snow Water Equivalent % of Median (1991-2020)': 'snow_water_equivalent_median_percentage',
-            'Snow Depth (in) Start of Day Values': 'snow_depth_in',
-            'Air Temperature Maximum (degF)': 'max_temp_degF',
-            'Air Temperature Minimum (degF)': 'min_temp_degF',
-            'Air Temperature Observed (degF) Start of Day Values': 'observed_temp_degF',
-            'Snow Density (pct) Start of Day Values': 'snow_density_percentage'
-        }
+                'Date': 'date',
+                'Station Name': 'station_name',
+                'Station Id': 'station_id',
+                'State Code': 'state_code',
+                'Network Code': 'network_code',
+                'Elevation (ft)': 'elevation_ft',
+                'Latitude': 'latitude',
+                'Longitude': 'longitude',
+                'County Name': 'county_name',
+                'Snow Water Equivalent (in) Start of Day Values': 'snow_water_equivalent_in',
+                'Snow Water Equivalent % of Median (1991-2020)': 'snow_water_equivalent_median_percentage',
+                'Snow Depth (in) Start of Day Values': 'snow_depth_in',
+                'Air Temperature Maximum (degF)': 'max_temp_degF',
+                'Air Temperature Minimum (degF)': 'min_temp_degF',
+                'Air Temperature Observed (degF) Start of Day Values': 'observed_temp_degF',
+                'Snow Density (pct) Start of Day Values': 'snow_density_percentage'
+            }
 
         data.rename(columns=column_mapping, inplace=True)
 
-        return station_id, data
+        data = data.fillna(np.nan).replace([np.nan], [None])
+
+        schema = {
+            "date": "datetime64[ns]",
+            "station_name": "string",
+            "station_id": "Int64",
+            "state_code": "string",
+            "network_code": "string",
+            "elevation_ft": "Int64",
+            "latitude": "float64",
+            "longitude": "float64",
+            "county_name": "string",
+            "snow_water_equivalent_in": "float64",
+            "snow_water_equivalent_median_percentage": "float64",
+            "snow_depth_in": "float64",
+            "max_temp_degF": "float64",
+            "min_temp_degF": "float64",
+            "observed_temp_degF": "float64",
+            "snow_density_percentage": "float64",
+            "new_snow": "float64"
+        }
+
+        # Ensure columns match the schema
+        for column, dtype in schema.items():
+            if column not in data.columns or data[column].dtype != dtype:
+                data[column] = data[column].astype(dtype)
+
+        if len(data) == 0:
+            return None
+
+        if len(data[1:]) > 0:
+            today_data = data[1:]
+
+        if len(data[0:1]) > 0:
+            yesterday_data = data[0:1]
+
+        return station_id, today_data, yesterday_data
 
     else:
         print("Failed to fetch data from the URL")
 
         return None
+
+
+def append_bq_table(df, table_id):
+
 
 
 def entry_point(event, context):
@@ -95,8 +135,7 @@ def entry_point(event, context):
     bucket = storage_client.bucket('snow-depth')
 
     # Fetch station metadata
-    station_md = pd.read_html("https://wcc.sc.egov.usda.gov/nwcc/yearcount?network=sntl&state=&counttype=statelist")[
-        0].to_dict(orient='records')
+    station_md = pd.read_html("https://wcc.sc.egov.usda.gov/nwcc/yearcount?network=sntl&state=&counttype=statelist")[0].to_dict(orient='records')
 
     processed_data = []
     yesterday_data = []
@@ -104,17 +143,11 @@ def entry_point(event, context):
 
         try:
 
-            station_id, data = process_station(record)
+            station_id, today_data, yesterday_data = process_station(record)
 
-            print(station_id)
-            processed_data.append(data[1:])
-            yesterday_data.append(data[0:1])
-
-            # Upload data to Google Cloud Storage in bulk
-            for data in processed_data:
-                destination_blob_name = f'daily_raw/{str(data["date"][0])}_{data["station_id"][0]}.csv'
-                upload_blob_from_memory(bucket, contents=data.to_csv(index=False),
-                                        destination_blob_name=destination_blob_name)
+            destination_blob_name = f'daily_raw/{str(today_data["date"][1])}-{str(today_data["station_id"][1])}.csv'
+            upload_blob_from_memory(bucket, contents=data.to_csv(index=False),
+                                    destination_blob_name=destination_blob_name)
 
         except TypeError as e:
             print('Error:', e)
@@ -125,30 +158,7 @@ def entry_point(event, context):
     df = pd.concat(processed_data, ignore_index=True)
     df_yesterday = pd.concat(yesterday_data, ignore_index=True)
 
-    schema = {
-        "date": "datetime64[ns]",
-        "station_name": "string",
-        "station_id": "Int64",
-        "state_code": "string",
-        "network_code": "string",
-        "elevation_ft": "Int64",
-        "latitude": "float64",
-        "longitude": "float64",
-        "county_name": "string",
-        "snow_water_equivalent_in": "float64",
-        "snow_water_equivalent_median_percentage": "float64",
-        "snow_depth_in": "float64",
-        "max_temp_degF": "float64",
-        "min_temp_degF": "float64",
-        "observed_temp_degF": "float64",
-        "snow_density_percentage": "float64",
-        "new_snow": "float64"
-    }
 
-    # Ensure columns match the schema
-    for column, dtype in schema.items():
-        if column not in df.columns or df[column].dtype != dtype:
-            df[column] = df[column].astype(dtype)
 
         # Ensure columns match the schema
     for column, dtype in schema.items():
