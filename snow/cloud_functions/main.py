@@ -40,7 +40,7 @@ def process_station(record):
     station_id = record["site_name"][record["site_name"].find("(") + 1:record["site_name"].find(")")]
     state = record["state"]
 
-    url = f'https://wcc.sc.egov.usda.gov/reportGenerator/view_csv/customSingleStationReport/daily/start_of_period/{station_id}:{state}:SNTL%7Cid=""|name/0,0/name,stationId,state.code,network.code,elevation,latitude,longitude,county.name,WTEQ::value,WTEQ::pctOfMedian_1991,SNWD::value,TMAX::value,TMIN::value,TOBS::value,SNDN::value?fitToScreen=false'
+    url = f'https://wcc.sc.egov.usda.gov/reportGenerator/view_csv/customSingleStationReport/daily/start_of_period/{station_id}:{state}:SNTL%7Cid=""|name/-1,0/name,stationId,state.code,network.code,elevation,latitude,longitude,county.name,WTEQ::value,WTEQ::pctOfMedian_1991,SNWD::value,TMAX::value,TMIN::value,TOBS::value,SNDN::value?fitToScreen=false'
 
     print('Done with', station_id, 'in', state, 'at', datetime.datetime.now().strftime("%H:%M:%S"))
 
@@ -99,6 +99,7 @@ def entry_point(event, context):
         0].to_dict(orient='records')
 
     processed_data = []
+    yesterday_data = []
     for record in station_md:
 
         try:
@@ -106,7 +107,8 @@ def entry_point(event, context):
             station_id, data = process_station(record)
 
             print(station_id)
-            processed_data.append(data)
+            processed_data.append(data[1:])
+            yesterday_data.append(data[0:1])
 
             # Upload data to Google Cloud Storage in bulk
             for data in processed_data:
@@ -121,6 +123,7 @@ def entry_point(event, context):
     # Get the reference to the target table
 
     df = pd.concat(processed_data, ignore_index=True)
+    df_yesterday = pd.concat(yesterday_data, ignore_index=True)
 
     schema = {
         "date": "datetime64[ns]",
@@ -147,6 +150,11 @@ def entry_point(event, context):
         if column not in df.columns or df[column].dtype != dtype:
             df[column] = df[column].astype(dtype)
 
+        # Ensure columns match the schema
+    for column, dtype in schema.items():
+        if column not in df_yesterday.columns or df_yesterday[column].dtype != dtype:
+            df_yesterday[column] = df_yesterday[column].astype(dtype)
+
     table_ref = client.dataset(dataset_id).table(table_id)
 
     # Load data into the table
@@ -156,3 +164,44 @@ def entry_point(event, context):
     # Load data from the DataFrame into the BigQuery table
     job = client.load_table_from_dataframe(df, table_ref, job_config=job_config)
     job.result()  # Wait for the job to complete
+
+    del processed_data
+    del df
+
+    ###### UPDATE YESTERDAYS RECORDS ######
+
+    # Define the update SQL statement
+    update_sql = f"""
+        UPDATE `{project_id}.{dataset_id}.{table_id}`
+        SET 
+            snow_water_equivalent_in = @snow_water_equivalent_in,
+            snow_water_equivalent_median_percentage = @snow_water_equivalent_median_percentage,
+            snow_depth_in = @snow_depth_in,
+            max_temp_degF = @max_temp_degF,
+            min_temp_degF = @min_temp_degF,
+            observed_temp_degF = @observed_temp_degF,
+            snow_density_percentage = @snow_density_percentage
+        WHERE station_id = @station_id AND date = @date
+    """
+
+    for index, update_row in df_yesterday.iterrows():
+
+        # Define the parameters for the SQL statement
+        parameters = [
+            bigquery.ScalarQueryParameter("station_id", "INT64", update_row['station_id']),
+            bigquery.ScalarQueryParameter("date", "DATE", update_row['date'].strftime('%Y-%m-%d')),
+            bigquery.ScalarQueryParameter("snow_water_equivalent_in", "FLOAT", update_row['snow_water_equivalent_in']),
+            bigquery.ScalarQueryParameter("snow_water_equivalent_median_percentage", "FLOAT",
+                                          update_row['snow_water_equivalent_median_percentage']),
+            bigquery.ScalarQueryParameter("snow_depth_in", "FLOAT", update_row['snow_depth_in']),
+            bigquery.ScalarQueryParameter("max_temp_degF", "FLOAT", update_row['max_temp_degF']),
+            bigquery.ScalarQueryParameter("min_temp_degF", "FLOAT", update_row['min_temp_degF']),
+            bigquery.ScalarQueryParameter("observed_temp_degF", "FLOAT", update_row['observed_temp_degF']),
+            bigquery.ScalarQueryParameter("snow_density_percentage", "FLOAT", update_row['snow_density_percentage'])
+        ]
+
+        # Run the update query
+        update_sql = update_sql.format(project_id=project_id, dataset_id=dataset_id, table_id=table_id)
+        query_job = client.query(update_sql, job_config=bigquery.QueryJobConfig(query_parameters=parameters))
+        query_job.result()  # Wait for the query to complete
+
