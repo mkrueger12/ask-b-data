@@ -20,8 +20,8 @@ from pandas import Series, DataFrame
   --entry-point=entry_point \
   --min-instances=0 \
   --max-instances=5 \
-  --memory=512MB \
-  --timeout=540s \
+  --memory=256MB \
+  --timeout=1080s \
   --region=us-central1 \
   --ingress-settings=internal-only \
   --no-allow-unauthenticated
@@ -206,10 +206,15 @@ def entry_point(event: Any, context: Any) -> None:
     storage_client = storage.Client(project=project_id)
     bucket = storage_client.bucket('snow-depth')
 
+    count = 0
+
     # Fetch station metadata
     station_md = pd.read_html("https://wcc.sc.egov.usda.gov/nwcc/yearcount?network=sntl&state=&counttype=statelist")[0].to_dict(orient='records')
 
     for record in station_md:
+
+        count += 1
+        print(count/len(station_md))
 
         try:
 
