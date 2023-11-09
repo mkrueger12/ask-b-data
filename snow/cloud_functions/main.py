@@ -12,7 +12,7 @@ from google.cloud import bigquery
 from google.cloud import storage
 from pandas import Series, DataFrame
 
-'''gcloud functions deploy snotel-data \
+'''gcloud beta functions deploy snotel-data \
   --gen2 \
   --runtime=python310 \
   --trigger-topic=Daily-Pull \
@@ -20,7 +20,8 @@ from pandas import Series, DataFrame
   --entry-point=entry_point \
   --min-instances=0 \
   --max-instances=5 \
-  --memory=256MB \
+  --memory=1G \
+  --cpu=1 \
   --timeout=1080s \
   --region=us-central1 \
   --ingress-settings=internal-only \
@@ -219,6 +220,7 @@ def entry_point(event: Any, context: Any) -> None:
         try:
 
             station_id, today_data, yesterday_data = process_station(record)
+            print(station_id)
 
             if today_data is not None:
 
