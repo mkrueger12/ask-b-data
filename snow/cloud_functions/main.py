@@ -1,12 +1,12 @@
-import datetime
+import asyncio
+import logging
 from io import StringIO
+
 import numpy as np
 import pandas as pd
 import requests
-import asyncio
-from google.cloud import storage
 from google.cloud import bigquery
-
+from google.cloud import storage
 
 '''gcloud functions deploy snotel-data \
   --gen2 \
@@ -36,12 +36,14 @@ client = bigquery.Client(project=project_id)
 def upload_blob_from_memory(bucket, contents, destination_blob_name):
     blob = bucket.blob(destination_blob_name)
     blob.upload_from_string(contents, content_type='text/csv')
-    print(f"{destination_blob_name} uploaded to {bucket.name}.")
+    logging.info(f"{destination_blob_name} uploaded to {bucket.name}.")
 
 
 def process_station(record):
     station_id = record["site_name"][record["site_name"].find("(") + 1:record["site_name"].find(")")]
     state = record["state"]
+
+    logging.info(f"Processing station {station_id} in {state}")
 
     url = f'https://wcc.sc.egov.usda.gov/reportGenerator/view_csv/customSingleStationReport/daily/start_of_period/{station_id}:{state}:SNTL%7Cid=""|name/-1,0/name,stationId,state.code,network.code,elevation,latitude,longitude,county.name,WTEQ::value,WTEQ::pctOfMedian_1991,SNWD::value,TMAX::value,TMIN::value,TOBS::value,SNDN::value?fitToScreen=false'
 
@@ -118,15 +120,22 @@ def process_station(record):
         if len(data[0:1]) > 0:
             yesterday_data = data[0:1]
 
+        logging.info(f"Successfully processed station {station_id} in {state}")
+
         return station_id, today_data, yesterday_data
 
     else:
         print("Failed to fetch data from the URL")
 
+        logging.warning(f"Failed to fetch data for  station {station_id} in {state}, Url: {url}")
+
         return None
 
 
 async def append_bq_table(df, _table_id):
+
+    logging.info(f"Appending {len(df)} rows to {project_id}.{dataset_id}.{_table_id}")
+
     table_ref = client.dataset(dataset_id).table(_table_id)
 
     # Load data into the table
@@ -137,8 +146,13 @@ async def append_bq_table(df, _table_id):
     job = client.load_table_from_dataframe(df, table_ref, job_config=job_config)
     job.result()  # Wait for the job to complete
 
+    logging.info(f"STATUS: {job.state}")
+
 
 async def update_bq_table(df):
+
+    logging.info(f"Updating {project_id}.{dataset_id}.{table_id}")
+
     # Define the update SQL statement
     update_sql = f"""
         UPDATE `{project_id}.{dataset_id}.{table_id}`
@@ -155,24 +169,27 @@ async def update_bq_table(df):
 
     update_row = df.to_dict(orient='records')[0]
 
-        # Define the parameters for the SQL statement
-        parameters = [
-            bigquery.ScalarQueryParameter("station_id", "INT64", update_row['station_id']),
-            bigquery.ScalarQueryParameter("date", "DATE", update_row['date'].strftime('%Y-%m-%d')),
-            bigquery.ScalarQueryParameter("snow_water_equivalent_in", "FLOAT", update_row['snow_water_equivalent_in']),
-            bigquery.ScalarQueryParameter("snow_water_equivalent_median_percentage", "FLOAT",
-                                          update_row['snow_water_equivalent_median_percentage']),
-            bigquery.ScalarQueryParameter("snow_depth_in", "FLOAT", update_row['snow_depth_in']),
-            bigquery.ScalarQueryParameter("max_temp_degF", "FLOAT", update_row['max_temp_degF']),
-            bigquery.ScalarQueryParameter("min_temp_degF", "FLOAT", update_row['min_temp_degF']),
-            bigquery.ScalarQueryParameter("observed_temp_degF", "FLOAT", update_row['observed_temp_degF']),
-            bigquery.ScalarQueryParameter("snow_density_percentage", "FLOAT", update_row['snow_density_percentage'])
-        ]
+    # Define the parameters for the SQL statement
+    parameters = [
+        bigquery.ScalarQueryParameter("station_id", "INT64", update_row['station_id']),
+        bigquery.ScalarQueryParameter("date", "DATE", update_row['date'].strftime('%Y-%m-%d')),
+        bigquery.ScalarQueryParameter("snow_water_equivalent_in", "FLOAT", update_row['snow_water_equivalent_in']),
+        bigquery.ScalarQueryParameter("snow_water_equivalent_median_percentage", "FLOAT",
+                                      update_row['snow_water_equivalent_median_percentage']),
+        bigquery.ScalarQueryParameter("snow_depth_in", "FLOAT", update_row['snow_depth_in']),
+        bigquery.ScalarQueryParameter("max_temp_degF", "FLOAT", update_row['max_temp_degF']),
+        bigquery.ScalarQueryParameter("min_temp_degF", "FLOAT", update_row['min_temp_degF']),
+        bigquery.ScalarQueryParameter("observed_temp_degF", "FLOAT", update_row['observed_temp_degF']),
+        bigquery.ScalarQueryParameter("snow_density_percentage", "FLOAT", update_row['snow_density_percentage'])
+    ]
 
-        # Run the update query
-        update_sql = update_sql.format(project_id=project_id, dataset_id=dataset_id, table_id=table_id)
-        query_job = client.query(update_sql, job_config=bigquery.QueryJobConfig(query_parameters=parameters))
-        #query_job.result()  # Wait for the query to complete
+    # Run the update query
+    update_sql = update_sql.format(project_id=project_id, dataset_id=dataset_id, table_id=table_id)
+    query_job = client.query(update_sql, job_config=bigquery.QueryJobConfig(query_parameters=parameters))
+    query_job.result()  # Wait for the query to complete
+
+    logging.info(f"STATUS: {query_job.state}")
+
 
 
 def entry_point(event, context):
@@ -199,4 +216,5 @@ def entry_point(event, context):
 
         except TypeError as e:
             print('Error:', e)
+            logging.error(f"Error occurred: {str(e)}")
 
