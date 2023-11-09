@@ -1,6 +1,6 @@
 import asyncio
 import logging
-from typing import Any
+from typing import Any, Dict, Union, List, Tuple
 
 import google.cloud.logging
 from io import StringIO
@@ -39,13 +39,13 @@ log_client = google.cloud.logging.Client()
 log_client.setup_logging()
 
 
-def upload_blob_from_memory(bucket, contents, destination_blob_name):
+def upload_blob_from_memory(bucket: storage.Bucket, contents: str, destination_blob_name: str) -> None:
     blob = bucket.blob(destination_blob_name)
     blob.upload_from_string(contents, content_type='text/csv')
     logging.info(f"{destination_blob_name} uploaded to {bucket.name}.")
 
 
-def process_station(record):
+def process_station(record: Dict[str, Any]) -> Union[None, Tuple[str, Any, Any]]:
     today_data = None
     yesterday_data = None
 
@@ -141,7 +141,7 @@ def process_station(record):
         return None
 
 
-async def append_bq_table(df, _table_id):
+async def append_bq_table(df: pd.DataFrame, _table_id: str) -> None:
 
     logging.info(f"Appending {len(df)} rows to {project_id}.{dataset_id}.{_table_id}")
 
@@ -158,7 +158,7 @@ async def append_bq_table(df, _table_id):
     logging.info(f"STATUS: {job.state}")
 
 
-async def update_bq_table(df):
+async def update_bq_table(df: pd.DataFrame) -> None:
 
     logging.info(f"Updating {project_id}.{dataset_id}.{table_id}")
 
@@ -201,7 +201,7 @@ async def update_bq_table(df):
 
 
 
-def entry_point(event, context):
+def entry_point(event: Any, context: Any) -> None:
     # Initialize Google Cloud Storage client and bucket
     storage_client = storage.Client(project=project_id)
     bucket = storage_client.bucket('snow-depth')
