@@ -36,11 +36,11 @@ dataset_id = 'production'
 table_id = 'snotel'
 
 client = bigquery.Client(project=project_id)
-log_client = google.cloud.logging.Client()
+log_client = google.cloud.logging.Client(project=project_id)
 log_client.setup_logging()
 
 
-def upload_blob_from_memory(bucket: storage.Bucket, contents: str, destination_blob_name: str) -> None:
+async def upload_blob_from_memory(bucket: storage.Bucket, contents: str, destination_blob_name: str) -> None:
     blob = bucket.blob(destination_blob_name)
     blob.upload_from_string(contents, content_type='text/csv')
     logging.info(f"{destination_blob_name} uploaded to {bucket.name}.")
@@ -154,9 +154,9 @@ async def append_bq_table(df: pd.DataFrame, _table_id: str) -> None:
 
     # Load data from the DataFrame into the BigQuery table
     job = client.load_table_from_dataframe(df, table_ref, job_config=job_config)
-    job.result()  # Wait for the job to complete
+    #job.result()  # Wait for the job to complete
 
-    logging.info(f"STATUS: {job.state}")
+    #logging.info(f"STATUS: {job.state}")
 
 
 async def update_bq_table(df: pd.DataFrame) -> None:
@@ -196,9 +196,9 @@ async def update_bq_table(df: pd.DataFrame) -> None:
     # Run the update query
     update_sql = update_sql.format(project_id=project_id, dataset_id=dataset_id, table_id=table_id)
     query_job = client.query(update_sql, job_config=bigquery.QueryJobConfig(query_parameters=parameters))
-    query_job.result()  # Wait for the query to complete
+    #query_job.result()  # Wait for the query to complete
 
-    logging.info(f"STATUS: {query_job.state}")
+    #logging.info(f"STATUS: {query_job.state}")
 
 
 
@@ -225,8 +225,8 @@ def entry_point(event: Any, context: Any) -> None:
             if today_data is not None:
 
                 destination_blob_name = f'daily_raw/{str(today_data["date"][1])}-{str(today_data["station_id"][1])}.csv'
-                upload_blob_from_memory(bucket, contents=today_data.to_csv(index=False),
-                                        destination_blob_name=destination_blob_name)
+                asyncio.run(upload_blob_from_memory(bucket, contents=today_data.to_csv(index=False),
+                                        destination_blob_name=destination_blob_name))
 
                 asyncio.run(append_bq_table(today_data, table_id))
 
