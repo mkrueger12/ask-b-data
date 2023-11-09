@@ -1,5 +1,8 @@
 import asyncio
 import logging
+from typing import Any
+
+import google.cloud.logging
 from io import StringIO
 
 import numpy as np
@@ -7,6 +10,7 @@ import pandas as pd
 import requests
 from google.cloud import bigquery
 from google.cloud import storage
+from pandas import Series, DataFrame
 
 '''gcloud functions deploy snotel-data \
   --gen2 \
@@ -31,6 +35,8 @@ dataset_id = 'production'
 table_id = 'snotel'
 
 client = bigquery.Client(project=project_id)
+log_client = google.cloud.logging.Client()
+log_client.setup_logging()
 
 
 def upload_blob_from_memory(bucket, contents, destination_blob_name):
@@ -40,6 +46,9 @@ def upload_blob_from_memory(bucket, contents, destination_blob_name):
 
 
 def process_station(record):
+    today_data = None
+    yesterday_data = None
+
     station_id = record["site_name"][record["site_name"].find("(") + 1:record["site_name"].find(")")]
     state = record["state"]
 
@@ -112,7 +121,7 @@ def process_station(record):
                 data[column] = data[column].astype(dtype)
 
         if len(data) == 0:
-            return None
+            return station_id, today_data, yesterday_data
 
         if len(data[1:]) > 0:
             today_data = data[1:]
@@ -206,15 +215,18 @@ def entry_point(event, context):
 
             station_id, today_data, yesterday_data = process_station(record)
 
-            destination_blob_name = f'daily_raw/{str(today_data["date"][1])}-{str(today_data["station_id"][1])}.csv'
-            upload_blob_from_memory(bucket, contents=today_data.to_csv(index=False),
-                                    destination_blob_name=destination_blob_name)
+            if today_data is not None:
 
-            asyncio.run(append_bq_table(today_data, table_id))
+                destination_blob_name = f'daily_raw/{str(today_data["date"][1])}-{str(today_data["station_id"][1])}.csv'
+                upload_blob_from_memory(bucket, contents=today_data.to_csv(index=False),
+                                        destination_blob_name=destination_blob_name)
 
-            asyncio.run(update_bq_table(yesterday_data))
+                asyncio.run(append_bq_table(today_data, table_id))
+
+            if yesterday_data is not None:
+
+                asyncio.run(update_bq_table(yesterday_data))
 
         except TypeError as e:
-            print('Error:', e)
             logging.error(f"Error occurred: {str(e)}")
 
