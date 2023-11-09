@@ -3,6 +3,7 @@ from io import StringIO
 import numpy as np
 import pandas as pd
 import requests
+import asyncio
 from google.cloud import storage
 from google.cloud import bigquery
 
@@ -125,47 +126,8 @@ def process_station(record):
         return None
 
 
-def append_bq_table(df, table_id):
-
-
-
-def entry_point(event, context):
-    # Initialize Google Cloud Storage client and bucket
-    storage_client = storage.Client(project=project_id)
-    bucket = storage_client.bucket('snow-depth')
-
-    # Fetch station metadata
-    station_md = pd.read_html("https://wcc.sc.egov.usda.gov/nwcc/yearcount?network=sntl&state=&counttype=statelist")[0].to_dict(orient='records')
-
-    processed_data = []
-    yesterday_data = []
-    for record in station_md:
-
-        try:
-
-            station_id, today_data, yesterday_data = process_station(record)
-
-            destination_blob_name = f'daily_raw/{str(today_data["date"][1])}-{str(today_data["station_id"][1])}.csv'
-            upload_blob_from_memory(bucket, contents=data.to_csv(index=False),
-                                    destination_blob_name=destination_blob_name)
-
-        except TypeError as e:
-            print('Error:', e)
-            pass
-
-    # Get the reference to the target table
-
-    df = pd.concat(processed_data, ignore_index=True)
-    df_yesterday = pd.concat(yesterday_data, ignore_index=True)
-
-
-
-        # Ensure columns match the schema
-    for column, dtype in schema.items():
-        if column not in df_yesterday.columns or df_yesterday[column].dtype != dtype:
-            df_yesterday[column] = df_yesterday[column].astype(dtype)
-
-    table_ref = client.dataset(dataset_id).table(table_id)
+async def append_bq_table(df, _table_id):
+    table_ref = client.dataset(dataset_id).table(_table_id)
 
     # Load data into the table
     job_config = bigquery.LoadJobConfig()
@@ -175,11 +137,8 @@ def entry_point(event, context):
     job = client.load_table_from_dataframe(df, table_ref, job_config=job_config)
     job.result()  # Wait for the job to complete
 
-    del processed_data
-    del df
 
-    ###### UPDATE YESTERDAYS RECORDS ######
-
+async def update_bq_table(df):
     # Define the update SQL statement
     update_sql = f"""
         UPDATE `{project_id}.{dataset_id}.{table_id}`
@@ -194,7 +153,7 @@ def entry_point(event, context):
         WHERE station_id = @station_id AND date = @date
     """
 
-    for index, update_row in df_yesterday.iterrows():
+    update_row = df.to_dict(orient='records')[0]
 
         # Define the parameters for the SQL statement
         parameters = [
@@ -214,4 +173,30 @@ def entry_point(event, context):
         update_sql = update_sql.format(project_id=project_id, dataset_id=dataset_id, table_id=table_id)
         query_job = client.query(update_sql, job_config=bigquery.QueryJobConfig(query_parameters=parameters))
         #query_job.result()  # Wait for the query to complete
+
+
+def entry_point(event, context):
+    # Initialize Google Cloud Storage client and bucket
+    storage_client = storage.Client(project=project_id)
+    bucket = storage_client.bucket('snow-depth')
+
+    # Fetch station metadata
+    station_md = pd.read_html("https://wcc.sc.egov.usda.gov/nwcc/yearcount?network=sntl&state=&counttype=statelist")[0].to_dict(orient='records')
+
+    for record in station_md:
+
+        try:
+
+            station_id, today_data, yesterday_data = process_station(record)
+
+            destination_blob_name = f'daily_raw/{str(today_data["date"][1])}-{str(today_data["station_id"][1])}.csv'
+            upload_blob_from_memory(bucket, contents=today_data.to_csv(index=False),
+                                    destination_blob_name=destination_blob_name)
+
+            asyncio.run(append_bq_table(today_data, table_id))
+
+            asyncio.run(update_bq_table(yesterday_data))
+
+        except TypeError as e:
+            print('Error:', e)
 
