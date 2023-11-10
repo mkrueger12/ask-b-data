@@ -10,7 +10,6 @@ import pandas as pd
 import requests
 from google.cloud import bigquery
 from google.cloud import storage
-from pandas import Series, DataFrame
 
 '''gcloud beta functions deploy snotel-data \
   --gen2 \
@@ -236,4 +235,11 @@ def entry_point(event: Any, context: Any) -> None:
 
         except TypeError as e:
             logging.error(f"Error occurred: {str(e)}")
+
+def main():
+    entry_point(None, None)
+
+
+if __name__ == '__main__':
+    main()
 
