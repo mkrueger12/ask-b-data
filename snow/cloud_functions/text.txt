@@ -19,3 +19,15 @@ gcloud compute instances create-with-container gcp-snow \
     --shielded-vtpm \
     --shielded-integrity-monitoring \
     --labels=goog-ec-src=vm_add-gcloud,container-vm=cos-stable-109-17800-66-19
+
+    export GOOGLE_APPLICATION_CREDENTIALS_JSON=$(cat ~/.config/gcloud/application_default_credentials.json)
+    docker run -e GOOGLE_APPLICATION_CREDENTIALS=$GOOGLE_APPLICATION_CREDENTIALS_JSON us-central1-docker.pkg.dev/avalanche-analytics-project/ask-bc/daily-snow-collect:latest
+    docker cp ~/.config/gcloud/application_default_credentials.json gcp-creds:/
+
+    gcloud scheduler jobs create http SCHEDULER_JOB_NAME \
+  --location SCHEDULER_REGION \
+  --schedule="SCHEDULE" \
+  --uri="https://us-central1-run.googleapis.com/apis/run.googleapis.com/v1/namespaces/avalanche-analytics-project/jobs/daily-snow-collect:run" \
+  --http-method POST \
+  --oauth-service-account-email PROJECT-NUMBER-compute@developer.gserviceaccount.com
+
