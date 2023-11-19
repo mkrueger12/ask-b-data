@@ -89,12 +89,12 @@ async fn process_station(record: TableData) -> Result<String, Error> {
     println!("Status: {}", response.status());
 
     let body: String = response.text().await?;
-    println!("Body:\n{}", body);
+    //println!("Body:\n{}", body);
 
-    let reader = CsvReader::new(body.as_bytes())
-        .has_header(true)
-        .finish()
-        .unwrap();
+    let _df = CsvReader::from_path(body.clone())
+    .unwrap()
+    .finish()
+    .unwrap();
     
     Ok(body)
 
