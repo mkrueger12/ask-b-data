@@ -94,12 +94,17 @@ async fn process_station(record: TableData) -> Result<String, Error> {
     // Convert the body string to a byte slice
     let body_bytes = body.as_bytes();
 
-    let mut df = CsvReader::new(Cursor::new(body_bytes))
+    let mut df: &mut DataFrame = &mut CsvReader::new(Cursor::new(body_bytes))
     .has_header(true)
     .with_comment_char(Some(b'#'))
     .finish()
     .unwrap();
 
+
+    if !df.get_column_names().contains(&"Snow Depth (in) Start of Day Values") {
+        let new_series = Series::new("Snow Depth (in) Start of Day Values", vec![None::<f32>; df.height()]);
+        df = df.with_column(new_series).unwrap();
+    }
         // Set column names
     let column_mapping = [
             ("Date", "date"),
@@ -121,7 +126,7 @@ async fn process_station(record: TableData) -> Result<String, Error> {
         ];
 
     for (old_name, new_name) in &column_mapping {
-            let df: &mut DataFrame = df.rename(old_name, new_name).unwrap(); // What is going on here.
+            df = df.rename(old_name, new_name).unwrap(); // What is going on here.
         }
     
     let new_df = df;
