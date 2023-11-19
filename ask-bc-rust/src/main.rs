@@ -94,16 +94,42 @@ async fn process_station(record: TableData) -> Result<String, Error> {
     // Convert the body string to a byte slice
     let body_bytes = body.as_bytes();
 
-    let _df = CsvReader::new(Cursor::new(body_bytes))
+    let mut df = CsvReader::new(Cursor::new(body_bytes))
     .has_header(true)
     .with_comment_char(Some(b'#'))
     .finish()
     .unwrap();
 
-    // Display the DataFrame
-    println!("{:?}", _df);
+        // Set column names
+    let column_mapping = [
+            ("Date", "date"),
+            ("Station Name", "station_name"),
+            ("Station Id", "station_id"),
+            ("State Code", "state_code"),
+            ("Network Code", "network_code"),
+            ("Elevation (ft)", "elevation_ft"),
+            ("Latitude", "latitude"),
+            ("Longitude", "longitude"),
+            ("County Name", "county_name"),
+            ("Snow Water Equivalent (in) Start of Day Values", "snow_water_equivalent_in"),
+            ("Snow Water Equivalent % of Median (1991-2020)", "snow_water_equivalent_median_percentage"),
+            ("Snow Depth (in) Start of Day Values", "snow_depth_in"),
+            ("Air Temperature Maximum (degF)", "max_temp_degF"),
+            ("Air Temperature Minimum (degF)", "min_temp_degF"),
+            ("Air Temperature Observed (degF) Start of Day Values", "observed_temp_degF"),
+            ("Snow Density (pct) Start of Day Values", "snow_density_percentage"),
+        ];
+
+    for (old_name, new_name) in &column_mapping {
+            let df: &mut DataFrame = df.rename(old_name, new_name).unwrap(); // What is going on here.
+        }
     
-    Ok(body)
+    let new_df = df;
+
+    // Display the DataFrame
+    println!("{:?}", new_df);
+    
+    Ok(new_df.to_string()) // update this after all functionaity is working
 
 }
 
