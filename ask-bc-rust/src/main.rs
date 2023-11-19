@@ -79,15 +79,15 @@ async fn process_station(record: TableData) -> Result<reqwest::Response, reqwest
         .filter(|c| c.is_digit(10))
         .collect();
 
-    let url: &str = format!(r#"https://wcc.sc.egov.usda.gov/reportGenerator/view_csv/customSingleStationReport/daily/start_of_period/{station_id}:{state}:SNTL%7Cid=""|name/-1,0/name,stationId,state.code,network.code,elevation,latitude,longitude,county.name,WTEQ::value,WTEQ::pctOfMedian_1991,SNWD::value,TMAX::value,TMIN::value,TOBS::value,SNDN::value?fitToScreen=false"#,
+    let url: String = format!(r#"https://wcc.sc.egov.usda.gov/reportGenerator/view_csv/customSingleStationReport/daily/start_of_period/{station_id}:{state}:SNTL%7Cid=""|name/-1,0/name,stationId,state.code,network.code,elevation,latitude,longitude,county.name,WTEQ::value,WTEQ::pctOfMedian_1991,SNWD::value,TMAX::value,TMIN::value,TOBS::value,SNDN::value?fitToScreen=false"#,
         station_id = station_id,
         state = state
-    ).as_str();
+    );
         
     
-    let response: = reqwest::get(url).await?;
-
-    response
+    let response: Result<reqwest::Response, reqwest::Error> = Ok(reqwest::get(url).await?);
+    
+    Ok(response.unwrap())
 
 }
 
@@ -96,6 +96,6 @@ async fn process_station(record: TableData) -> Result<reqwest::Response, reqwest
 async fn main() {
     let http_data: Result<String, reqwest::Error>  = do_throttled_request("https://wcc.sc.egov.usda.gov/nwcc/yearcount?network=sntl&state=&counttype=statelist");
     let table = create_struct_from_table(&http_data.unwrap());
-    let data: = process_station(table[4].clone()).await?;
+    let data: Result<reqwest::Response, reqwest::Error> = process_station(table[4].clone()).await;
     println!("{:#?}", data);
 }
