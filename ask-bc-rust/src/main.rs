@@ -2,7 +2,7 @@ use reqwest::{self, Error, Response};
 use scraper::{Html, Selector};
 
 
-async fn do_throttled_request(url: &str) -> Result<String, Error> {
+async fn request(url: &str) -> Result<String, Error> {
     // See the real code for the throttling - it's omitted here for clarity
     let response: Result<reqwest::Response, reqwest::Error> = Ok(reqwest::get(url).await?);
     response.unwrap().text().await
@@ -83,7 +83,6 @@ async fn process_station(record: TableData) -> Result<reqwest::Response, reqwest
         station_id = station_id,
         state = state
     );
-        
     
     let response: Result<reqwest::Response, reqwest::Error> = Ok(reqwest::get(url).await?);
     
@@ -94,8 +93,11 @@ async fn process_station(record: TableData) -> Result<reqwest::Response, reqwest
 
 #[tokio::main]
 async fn main() {
-    let http_data: Result<String, reqwest::Error>  = do_throttled_request("https://wcc.sc.egov.usda.gov/nwcc/yearcount?network=sntl&state=&counttype=statelist");
+    let http_data: Result<String, Error>  = request("https://wcc.sc.egov.usda.gov/nwcc/yearcount?network=sntl&state=&counttype=statelist").await;
+
+    //println!("body = {:?}", &http_data.unwrap());
     let table = create_struct_from_table(&http_data.unwrap());
     let data: Result<reqwest::Response, reqwest::Error> = process_station(table[4].clone()).await;
     println!("{:#?}", data);
+    
 }
