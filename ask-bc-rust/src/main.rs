@@ -1,12 +1,11 @@
 use reqwest::{self, Error, Response};
 use scraper::{Html, Selector};
-use polars::prelude::*;
-use std::io::Cursor;
 
-async fn request(url: &str) -> Result<String, Error> {
+
+pub fn do_throttled_request(url: &str) -> Result<String, Error> {
     // See the real code for the throttling - it's omitted here for clarity
-    let response: Result<reqwest::Response, reqwest::Error> = Ok(reqwest::get(url).await?);
-    response.unwrap().text().await
+    let response = reqwest::blocking::get(url)?;
+    response.text()
 }
 
 #[derive(Debug, Clone)]
@@ -73,48 +72,30 @@ fn create_struct_from_table(html: &str) -> Vec<TableData> {
 }
 
 
-async fn process_station(record: TableData) -> Result<String, Error> {
-    let site_name = &record.site_name;
-    let state = &record.state;
+fn process_station(record: TableData) -> Response {
+    let site_name = record.site_name;
+    let state = record.state;
     let station_id: String = site_name.chars()
         .filter(|c| c.is_digit(10))
         .collect();
 
-    let url: String = format!(r#"https://wcc.sc.egov.usda.gov/reportGenerator/view_csv/customSingleStationReport/daily/start_of_period/{station_id}:{state}:SNTL%7Cid=""|name/-1,0/name,stationId,state.code,network.code,elevation,latitude,longitude,county.name,WTEQ::value,WTEQ::pctOfMedian_1991,SNWD::value,TMAX::value,TMIN::value,TOBS::value,SNDN::value?fitToScreen=false"#,
+    let url: &str = format!(r#"https://wcc.sc.egov.usda.gov/reportGenerator/view_csv/customSingleStationReport/daily/start_of_period/{station_id}:{state}:SNTL%7Cid=""|name/-1,0/name,stationId,state.code,network.code,elevation,latitude,longitude,county.name,WTEQ::value,WTEQ::pctOfMedian_1991,SNWD::value,TMAX::value,TMIN::value,TOBS::value,SNDN::value?fitToScreen=false"#,
         station_id = station_id,
         state = state
-    );
-    
-    let response: Response = reqwest::get(url).await?;
-    println!("Status: {}", response.status());
+    ).as_str();
+        
 
-    let body: String = response.text().await?;
-    //println!("Body:\n{}", body);
+    let response: Response = reqwest::blocking::get(url)
 
-    // Convert the body string to a byte slice
-    let body_bytes = body.as_bytes();
-
-    let _df = CsvReader::new(Cursor::new(body_bytes))
-    .has_header(true)
-    .with_comment_char(Some(b'#'))
-    .finish()
-    .unwrap();
-
-    // Display the DataFrame
-    println!("{:?}", _df);
-    
-    Ok(body)
+    response
 
 }
 
 
-#[tokio::main]
-async fn main() {
-    let http_data: Result<String, Error>  = request("https://wcc.sc.egov.usda.gov/nwcc/yearcount?network=sntl&state=&counttype=statelist").await;
 
-    //println!("body = {:?}", &http_data.unwrap());
+fn main() {
+    let http_data: Result<String, reqwest::Error>  = do_throttled_request("https://wcc.sc.egov.usda.gov/nwcc/yearcount?network=sntl&state=&counttype=statelist");
     let table = create_struct_from_table(&http_data.unwrap());
-    let data: Result<String, Error> = process_station(table[4].clone()).await; // sending the 4th record for testing
+    let data: &str = process_station(table[4].clone());
     println!("{:#?}", data);
-    
 }
