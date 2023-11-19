@@ -72,9 +72,9 @@ fn create_struct_from_table(html: &str) -> Vec<TableData> {
 }
 
 
-fn process_station(record: TableData) -> Response {
-    let site_name = record.site_name;
-    let state = record.state;
+async fn process_station(record: TableData) -> Result<reqwest::Response, reqwest::Error> {
+    let site_name = &record.site_name;
+    let state = &record.state;
     let station_id: String = site_name.chars()
         .filter(|c| c.is_digit(10))
         .collect();
@@ -84,18 +84,18 @@ fn process_station(record: TableData) -> Response {
         state = state
     ).as_str();
         
-
-    let response: Response = reqwest::blocking::get(url)
+    
+    let response: = reqwest::get(url).await?;
 
     response
 
 }
 
 
-
-fn main() {
+#[tokio::main]
+async fn main() {
     let http_data: Result<String, reqwest::Error>  = do_throttled_request("https://wcc.sc.egov.usda.gov/nwcc/yearcount?network=sntl&state=&counttype=statelist");
     let table = create_struct_from_table(&http_data.unwrap());
-    let data: &str = process_station(table[4].clone());
+    let data: = process_station(table[4].clone()).await?;
     println!("{:#?}", data);
 }
