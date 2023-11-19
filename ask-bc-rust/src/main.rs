@@ -1,5 +1,6 @@
 use reqwest::{self, Error, Response};
 use scraper::{Html, Selector};
+use polars::prelude::*;
 
 
 async fn request(url: &str) -> Result<String, Error> {
@@ -72,7 +73,7 @@ fn create_struct_from_table(html: &str) -> Vec<TableData> {
 }
 
 
-async fn process_station(record: TableData) -> Result<reqwest::Response, reqwest::Error> {
+async fn process_station(record: TableData) -> Result<String, Error> {
     let site_name = &record.site_name;
     let state = &record.state;
     let station_id: String = site_name.chars()
@@ -84,9 +85,18 @@ async fn process_station(record: TableData) -> Result<reqwest::Response, reqwest
         state = state
     );
     
-    let response: Result<reqwest::Response, reqwest::Error> = Ok(reqwest::get(url).await?);
+    let response: Response = reqwest::get(url).await?;
+    println!("Status: {}", response.status());
+
+    let body: String = response.text().await?;
+    println!("Body:\n{}", body);
+
+    let reader = CsvReader::new(body.as_bytes())
+        .has_header(true)
+        .finish()
+        .unwrap();
     
-    Ok(response.unwrap())
+    Ok(body)
 
 }
 
@@ -97,7 +107,7 @@ async fn main() {
 
     //println!("body = {:?}", &http_data.unwrap());
     let table = create_struct_from_table(&http_data.unwrap());
-    let data: Result<reqwest::Response, reqwest::Error> = process_station(table[4].clone()).await;
+    let data: Result<String, Error> = process_station(table[4].clone()).await; // sending the 4th record for testing
     println!("{:#?}", data);
     
 }
