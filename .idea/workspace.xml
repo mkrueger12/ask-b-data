@@ -1,0 +1,354 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<project version="4">
+  <component name="AutoImportSettings">
+    <option name="autoReloadType" value="SELECTIVE" />
+  </component>
+  <component name="ChangeListManager">
+    <list default="true" id="b8a37219-43a3-45fe-83d1-a9259ecfeee6" name="Changes" comment="update functions">
+      <change afterPath="$PROJECT_DIR$/trail/cotrex.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/docker/snow/main.py" beforeDir="false" afterPath="$PROJECT_DIR$/docker/snow/main.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/snow/cloud_functions/text.txt" beforeDir="false" afterPath="$PROJECT_DIR$/snow/cloud_functions/text.txt" afterDir="false" />
+    </list>
+    <option name="SHOW_DIALOG" value="false" />
+    <option name="HIGHLIGHT_CONFLICTS" value="true" />
+    <option name="HIGHLIGHT_NON_ACTIVE_CHANGELIST" value="false" />
+    <option name="LAST_RESOLUTION" value="IGNORE" />
+  </component>
+  <component name="FileTemplateManagerImpl">
+    <option name="RECENT_TEMPLATES">
+      <list>
+        <option value="Python Script" />
+      </list>
+    </option>
+  </component>
+  <component name="Git.Settings">
+    <option name="RECENT_GIT_ROOT_PATH" value="$PROJECT_DIR$" />
+  </component>
+  <component name="MarkdownSettingsMigration">
+    <option name="stateVersion" value="1" />
+  </component>
+  <component name="ProjectColorInfo">{
+  &quot;associatedIndex&quot;: 7
+}</component>
+  <component name="ProjectId" id="2XgJOeUwls98YRJ49EEoduBJe92" />
+  <component name="ProjectViewState">
+    <option name="hideEmptyMiddlePackages" value="true" />
+    <option name="showLibraryContents" value="true" />
+  </component>
+  <component name="PropertiesComponent">{
+  &quot;keyToString&quot;: {
+    &quot;ASKED_SHARE_PROJECT_CONFIGURATION_FILES&quot;: &quot;true&quot;,
+    &quot;RunOnceActivity.OpenProjectViewOnStart&quot;: &quot;true&quot;,
+    &quot;RunOnceActivity.ShowReadmeOnStart&quot;: &quot;true&quot;,
+    &quot;git-widget-placeholder&quot;: &quot;main&quot;,
+    &quot;last_opened_file_path&quot;: &quot;/home/max/PycharmProjects/avalanche/docker/snow&quot;,
+    &quot;settings.editor.selected.configurable&quot;: &quot;terminal&quot;
+  }
+}</component>
+  <component name="RecentsManager">
+    <key name="MoveFile.RECENT_KEYS">
+      <recent name="$PROJECT_DIR$/docker/snow" />
+    </key>
+  </component>
+  <component name="RunManager" selected="Python.main">
+    <configuration name="main" type="PythonConfigurationType" factoryName="Python" temporary="true" nameIsGenerated="true">
+      <module name="avalanche" />
+      <option name="INTERPRETER_OPTIONS" value="" />
+      <option name="PARENT_ENVS" value="true" />
+      <envs>
+        <env name="PYTHONUNBUFFERED" value="1" />
+      </envs>
+      <option name="SDK_HOME" value="" />
+      <option name="WORKING_DIRECTORY" value="$PROJECT_DIR$/snow/cloud_functions" />
+      <option name="IS_MODULE_SDK" value="true" />
+      <option name="ADD_CONTENT_ROOTS" value="true" />
+      <option name="ADD_SOURCE_ROOTS" value="true" />
+      <option name="SCRIPT_NAME" value="$PROJECT_DIR$/docker/snow/main.py" />
+      <option name="PARAMETERS" value="" />
+      <option name="SHOW_COMMAND_LINE" value="false" />
+      <option name="EMULATE_TERMINAL" value="false" />
+      <option name="MODULE_MODE" value="false" />
+      <option name="REDIRECT_INPUT" value="false" />
+      <option name="INPUT_FILE" value="" />
+      <method v="2" />
+    </configuration>
+    <configuration name="run" type="PythonConfigurationType" factoryName="Python" temporary="true" nameIsGenerated="true">
+      <module name="avalanche" />
+      <option name="INTERPRETER_OPTIONS" value="" />
+      <option name="PARENT_ENVS" value="true" />
+      <envs>
+        <env name="PYTHONUNBUFFERED" value="1" />
+      </envs>
+      <option name="SDK_HOME" value="" />
+      <option name="WORKING_DIRECTORY" value="$PROJECT_DIR$/snow/cloud_functions" />
+      <option name="IS_MODULE_SDK" value="true" />
+      <option name="ADD_CONTENT_ROOTS" value="true" />
+      <option name="ADD_SOURCE_ROOTS" value="true" />
+      <option name="SCRIPT_NAME" value="$PROJECT_DIR$/snow/cloud_functions/run.py" />
+      <option name="PARAMETERS" value="" />
+      <option name="SHOW_COMMAND_LINE" value="false" />
+      <option name="EMULATE_TERMINAL" value="false" />
+      <option name="MODULE_MODE" value="false" />
+      <option name="REDIRECT_INPUT" value="false" />
+      <option name="INPUT_FILE" value="" />
+      <method v="2" />
+    </configuration>
+    <configuration name="snotel" type="PythonConfigurationType" factoryName="Python" temporary="true" nameIsGenerated="true">
+      <module name="avalanche" />
+      <option name="INTERPRETER_OPTIONS" value="" />
+      <option name="PARENT_ENVS" value="true" />
+      <envs>
+        <env name="PYTHONUNBUFFERED" value="1" />
+      </envs>
+      <option name="SDK_HOME" value="" />
+      <option name="WORKING_DIRECTORY" value="$PROJECT_DIR$/snow" />
+      <option name="IS_MODULE_SDK" value="true" />
+      <option name="ADD_CONTENT_ROOTS" value="true" />
+      <option name="ADD_SOURCE_ROOTS" value="true" />
+      <option name="SCRIPT_NAME" value="$PROJECT_DIR$/snow/snotel.py" />
+      <option name="PARAMETERS" value="" />
+      <option name="SHOW_COMMAND_LINE" value="false" />
+      <option name="EMULATE_TERMINAL" value="false" />
+      <option name="MODULE_MODE" value="false" />
+      <option name="REDIRECT_INPUT" value="false" />
+      <option name="INPUT_FILE" value="" />
+      <method v="2" />
+    </configuration>
+    <configuration name="snow_depth_v2" type="PythonConfigurationType" factoryName="Python" temporary="true" nameIsGenerated="true">
+      <module name="avalanche" />
+      <option name="INTERPRETER_OPTIONS" value="" />
+      <option name="PARENT_ENVS" value="true" />
+      <envs>
+        <env name="PYTHONUNBUFFERED" value="1" />
+      </envs>
+      <option name="SDK_HOME" value="" />
+      <option name="WORKING_DIRECTORY" value="$PROJECT_DIR$/avalanche/avalanche/data/collection" />
+      <option name="IS_MODULE_SDK" value="true" />
+      <option name="ADD_CONTENT_ROOTS" value="true" />
+      <option name="ADD_SOURCE_ROOTS" value="true" />
+      <option name="SCRIPT_NAME" value="$PROJECT_DIR$/avalanche/avalanche/data/collection/snow_depth_v2.py" />
+      <option name="PARAMETERS" value="" />
+      <option name="SHOW_COMMAND_LINE" value="false" />
+      <option name="EMULATE_TERMINAL" value="false" />
+      <option name="MODULE_MODE" value="false" />
+      <option name="REDIRECT_INPUT" value="false" />
+      <option name="INPUT_FILE" value="" />
+      <method v="2" />
+    </configuration>
+    <recent_temporary>
+      <list>
+        <item itemvalue="Python.main" />
+        <item itemvalue="Python.run" />
+        <item itemvalue="Python.snotel" />
+        <item itemvalue="Python.snow_depth_v2" />
+      </list>
+    </recent_temporary>
+  </component>
+  <component name="SpellCheckerSettings" RuntimeDictionaries="0" Folders="0" CustomDictionaries="0" DefaultDictionary="application-level" UseSingleDictionary="true" transferred="true" />
+  <component name="TaskManager">
+    <task active="true" id="Default" summary="Default task">
+      <changelist id="b8a37219-43a3-45fe-83d1-a9259ecfeee6" name="Changes" comment="" />
+      <created>1699044758808</created>
+      <option name="number" value="Default" />
+      <option name="presentableId" value="Default" />
+      <updated>1699044758808</updated>
+    </task>
+    <task id="LOCAL-00001" summary="updates">
+      <option name="closed" value="true" />
+      <created>1699048779458</created>
+      <option name="number" value="00001" />
+      <option name="presentableId" value="LOCAL-00001" />
+      <option name="project" value="LOCAL" />
+      <updated>1699048779458</updated>
+    </task>
+    <task id="LOCAL-00002" summary="feat: add new snow column">
+      <option name="closed" value="true" />
+      <created>1699059239056</created>
+      <option name="number" value="00002" />
+      <option name="presentableId" value="LOCAL-00002" />
+      <option name="project" value="LOCAL" />
+      <updated>1699059239056</updated>
+    </task>
+    <task id="LOCAL-00003" summary="feat: add new snow column">
+      <option name="closed" value="true" />
+      <created>1699059855360</created>
+      <option name="number" value="00003" />
+      <option name="presentableId" value="LOCAL-00003" />
+      <option name="project" value="LOCAL" />
+      <updated>1699059855360</updated>
+    </task>
+    <task id="LOCAL-00004" summary="feat: now snow features">
+      <option name="closed" value="true" />
+      <created>1699378758695</created>
+      <option name="number" value="00004" />
+      <option name="presentableId" value="LOCAL-00004" />
+      <option name="project" value="LOCAL" />
+      <updated>1699378758695</updated>
+    </task>
+    <task id="LOCAL-00005" summary="feat: snow depth daily collect">
+      <option name="closed" value="true" />
+      <created>1699387647101</created>
+      <option name="number" value="00005" />
+      <option name="presentableId" value="LOCAL-00005" />
+      <option name="project" value="LOCAL" />
+      <updated>1699387647101</updated>
+    </task>
+    <task id="LOCAL-00006" summary="feat: snow depth daily collect">
+      <option name="closed" value="true" />
+      <created>1699387801240</created>
+      <option name="number" value="00006" />
+      <option name="presentableId" value="LOCAL-00006" />
+      <option name="project" value="LOCAL" />
+      <updated>1699387801240</updated>
+    </task>
+    <task id="LOCAL-00007" summary="error handling">
+      <option name="closed" value="true" />
+      <created>1699387892878</created>
+      <option name="number" value="00007" />
+      <option name="presentableId" value="LOCAL-00007" />
+      <option name="project" value="LOCAL" />
+      <updated>1699387892878</updated>
+    </task>
+    <task id="LOCAL-00008" summary="done">
+      <option name="closed" value="true" />
+      <created>1699408239418</created>
+      <option name="number" value="00008" />
+      <option name="presentableId" value="LOCAL-00008" />
+      <option name="project" value="LOCAL" />
+      <updated>1699408239418</updated>
+    </task>
+    <task id="LOCAL-00009" summary="daily scrape">
+      <option name="closed" value="true" />
+      <created>1699414867858</created>
+      <option name="number" value="00009" />
+      <option name="presentableId" value="LOCAL-00009" />
+      <option name="project" value="LOCAL" />
+      <updated>1699414867858</updated>
+    </task>
+    <task id="LOCAL-00010" summary="feat: deploy cloud func">
+      <option name="closed" value="true" />
+      <created>1699416317391</created>
+      <option name="number" value="00010" />
+      <option name="presentableId" value="LOCAL-00010" />
+      <option name="project" value="LOCAL" />
+      <updated>1699416317391</updated>
+    </task>
+    <task id="LOCAL-00011" summary="feat: update past records">
+      <option name="closed" value="true" />
+      <created>1699419435365</created>
+      <option name="number" value="00011" />
+      <option name="presentableId" value="LOCAL-00011" />
+      <option name="project" value="LOCAL" />
+      <updated>1699419435365</updated>
+    </task>
+    <task id="LOCAL-00012" summary="feat: update past records">
+      <option name="closed" value="true" />
+      <created>1699419783765</created>
+      <option name="number" value="00012" />
+      <option name="presentableId" value="LOCAL-00012" />
+      <option name="project" value="LOCAL" />
+      <updated>1699419783765</updated>
+    </task>
+    <task id="LOCAL-00013" summary="chore: refine">
+      <option name="closed" value="true" />
+      <created>1699484697393</created>
+      <option name="number" value="00013" />
+      <option name="presentableId" value="LOCAL-00013" />
+      <option name="project" value="LOCAL" />
+      <updated>1699484697393</updated>
+    </task>
+    <task id="LOCAL-00014" summary="chore: refine">
+      <option name="closed" value="true" />
+      <created>1699498240726</created>
+      <option name="number" value="00014" />
+      <option name="presentableId" value="LOCAL-00014" />
+      <option name="project" value="LOCAL" />
+      <updated>1699498240726</updated>
+    </task>
+    <task id="LOCAL-00015" summary="logging">
+      <option name="closed" value="true" />
+      <created>1699498801060</created>
+      <option name="number" value="00015" />
+      <option name="presentableId" value="LOCAL-00015" />
+      <option name="project" value="LOCAL" />
+      <updated>1699498801060</updated>
+    </task>
+    <task id="LOCAL-00016" summary="fix: None type &amp; unbound error">
+      <option name="closed" value="true" />
+      <created>1699500138562</created>
+      <option name="number" value="00016" />
+      <option name="presentableId" value="LOCAL-00016" />
+      <option name="project" value="LOCAL" />
+      <updated>1699500138562</updated>
+    </task>
+    <task id="LOCAL-00017" summary="chore: type hints">
+      <option name="closed" value="true" />
+      <created>1699500879135</created>
+      <option name="number" value="00017" />
+      <option name="presentableId" value="LOCAL-00017" />
+      <option name="project" value="LOCAL" />
+      <updated>1699500879135</updated>
+    </task>
+    <task id="LOCAL-00018" summary="chore: type hints">
+      <option name="closed" value="true" />
+      <created>1699501844052</created>
+      <option name="number" value="00018" />
+      <option name="presentableId" value="LOCAL-00018" />
+      <option name="project" value="LOCAL" />
+      <updated>1699501844052</updated>
+    </task>
+    <task id="LOCAL-00019" summary="chore: type hints">
+      <option name="closed" value="true" />
+      <created>1699503820421</created>
+      <option name="number" value="00019" />
+      <option name="presentableId" value="LOCAL-00019" />
+      <option name="project" value="LOCAL" />
+      <updated>1699503820421</updated>
+    </task>
+    <task id="LOCAL-00020" summary="feat: async">
+      <option name="closed" value="true" />
+      <created>1699504273437</created>
+      <option name="number" value="00020" />
+      <option name="presentableId" value="LOCAL-00020" />
+      <option name="project" value="LOCAL" />
+      <updated>1699504273437</updated>
+    </task>
+    <task id="LOCAL-00021" summary="misc">
+      <option name="closed" value="true" />
+      <created>1699577988176</created>
+      <option name="number" value="00021" />
+      <option name="presentableId" value="LOCAL-00021" />
+      <option name="project" value="LOCAL" />
+      <updated>1699577988176</updated>
+    </task>
+    <task id="LOCAL-00022" summary="update functions">
+      <option name="closed" value="true" />
+      <created>1699580922430</created>
+      <option name="number" value="00022" />
+      <option name="presentableId" value="LOCAL-00022" />
+      <option name="project" value="LOCAL" />
+      <updated>1699580922430</updated>
+    </task>
+    <option name="localTasksCounter" value="23" />
+    <servers />
+  </component>
+  <component name="VcsManagerConfiguration">
+    <MESSAGE value="updates" />
+    <MESSAGE value="feat: add new snow column" />
+    <MESSAGE value="feat: now snow features" />
+    <MESSAGE value="feat: snow depth daily collect" />
+    <MESSAGE value="error handling" />
+    <MESSAGE value="done" />
+    <MESSAGE value="daily scrape" />
+    <MESSAGE value="feat: deploy cloud func" />
+    <MESSAGE value="feat: update past records" />
+    <MESSAGE value="chore: refine" />
+    <MESSAGE value="logging" />
+    <MESSAGE value="fix: None type &amp; unbound error" />
+    <MESSAGE value="chore: type hints" />
+    <MESSAGE value="feat: async" />
+    <MESSAGE value="misc" />
+    <MESSAGE value="update functions" />
+    <option name="LAST_COMMIT_MESSAGE" value="update functions" />
+  </component>
+</project>
