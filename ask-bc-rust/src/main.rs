@@ -2,10 +2,10 @@ use reqwest::{self, Error, Response};
 use scraper::{Html, Selector};
 
 
-pub fn do_throttled_request(url: &str) -> Result<String, Error> {
+async fn do_throttled_request(url: &str) -> Result<String, Error> {
     // See the real code for the throttling - it's omitted here for clarity
-    let response = reqwest::blocking::get(url)?;
-    response.text()
+    let response: Result<reqwest::Response, reqwest::Error> = Ok(reqwest::get(url).await?);
+    response.unwrap().text().await
 }
 
 #[derive(Debug, Clone)]
