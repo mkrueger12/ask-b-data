@@ -1,7 +1,7 @@
 use reqwest::{self, Error, Response};
 use scraper::{Html, Selector};
 use polars::prelude::*;
-
+use std::io::Cursor;
 
 async fn request(url: &str) -> Result<String, Error> {
     // See the real code for the throttling - it's omitted here for clarity
@@ -91,10 +91,17 @@ async fn process_station(record: TableData) -> Result<String, Error> {
     let body: String = response.text().await?;
     //println!("Body:\n{}", body);
 
-    let _df = CsvReader::from_path(body.clone())
-    .unwrap()
+    // Convert the body string to a byte slice
+    let body_bytes = body.as_bytes();
+
+    let _df = CsvReader::new(Cursor::new(body_bytes))
+    .has_header(true)
+    .with_comment_char(Some(b'#'))
     .finish()
     .unwrap();
+
+    // Display the DataFrame
+    println!("{:?}", _df);
     
     Ok(body)
 
